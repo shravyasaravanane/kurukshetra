@@ -126,3 +126,32 @@ th { color: var(--muted); font-weight: 600; font-size: .78rem; }
 .chart text { fill: var(--muted); font-size: 11px; }
 .empty { padding: 30px; text-align: center; color: var(--muted); }
 @media (max-width: 600px) { .wrap { padding: 12px 16px 40px; } .brand span { display: none; } .topbar { padding: 10px 16px; } }
+
+/* ---------------------------------------------------------------------------
+   Dashboard art direction: the analytical wing of the same product.
+   Quiet surfaces instead of outlined cards, Cinzel section titles with a gold
+   rule, numbers set large and plain. Works in both themes through the tokens.
+   --------------------------------------------------------------------------- */
+body { background: var(--bg); }
+.topbar { border-bottom: none; background: transparent; padding: 22px 32px 10px; }
+.brand { font-size: 1.15rem; letter-spacing: .3em; }
+.brand span { font-family: Inter, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; font-size: .7rem; font-weight: 600; }
+.wrap { max-width: 1280px; padding: 12px 32px 64px; }
+.viz-root .card { border: none; box-shadow: none; border-radius: 3px; padding: 22px 24px; background: var(--surface); }
+.viz-root .chart h2, .viz-root .card h2 { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: 1.02rem; letter-spacing: .04em; }
+.viz-root .section-title { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: .82rem; letter-spacing: .24em; text-transform: uppercase; color: var(--accent); margin: 44px 0 14px; display: flex; align-items: center; gap: 14px; }
+.viz-root .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.viz-root .tiles { gap: 0; margin: 8px 0 28px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.viz-root .tile { border: none; background: transparent; border-radius: 0; padding: 20px 18px; }
+.viz-root .tile + .tile { box-shadow: inset 1px 0 0 var(--border); }
+.viz-root .tile b { font-family: Cinzel, Georgia, serif; font-weight: 600; font-size: 2rem; }
+.viz-root .tile span { font-size: .78rem; letter-spacing: .02em; }
+button, .btn { border: none; border-radius: 3px; background: var(--surface-2); }
+button:hover:not(:disabled), .btn:hover { border-color: transparent; background: color-mix(in srgb, var(--surface-2) 70%, var(--accent) 30%); }
+.ghost { background: transparent; }
+.primary { border: none; }
+input[type=text], input[type=number], textarea, select { border: none; box-shadow: inset 0 0 0 1px var(--border); border-radius: 3px; }
+th { font-weight: 500; letter-spacing: .02em; }
+th, td { border-bottom-color: color-mix(in srgb, var(--border) 55%, transparent); }
+.empty { font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.15rem; }
+@media (max-width: 600px) { .topbar { padding: 14px 16px 6px; } .wrap { padding: 8px 16px 40px; } }

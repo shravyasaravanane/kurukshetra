@@ -64,7 +64,7 @@
     $('bfBack').classList.toggle('hidden', meta.mode === 'study');
     $('bfBegin').onclick = () => { K.Audio.play('click'); startRound(condition, meta); };
     show('briefing');
-    setTimeout(() => $('bfBegin').focus(), 50);
+    setTimeout(() => { $('bfBegin').focus({ preventScroll: true }); document.querySelector('.brief').scrollTop = 0; }, 50);
   }
   $('bfBack').addEventListener('click', () => toMenu());
   $('bfLearn').addEventListener('click', () => openLevels());
@@ -77,6 +77,12 @@
   infoHelp();
   $('settingsToggle').addEventListener('click', () => { $('settings').classList.toggle('hidden'); $('studyForm').classList.add('hidden'); });
   $('studyBtn').addEventListener('click', () => { $('studyForm').classList.toggle('hidden'); $('settings').classList.add('hidden'); $('participantId').focus(); });
+  document.querySelectorAll('[data-sheet-close]').forEach((b) => b.addEventListener('click', () => b.closest('.side-sheet').classList.add('hidden')));
+  // The allies list folds down to one line per ally, so the battlefield keeps the space.
+  $('alliesToggle').addEventListener('click', () => {
+    const folded = $('units').classList.toggle('collapsed');
+    $('alliesToggle').setAttribute('aria-expanded', String(!folded));
+  });
   const readCondition = () => ({
     infoLevel: document.querySelector('input[name=info]:checked').value,
     allyComms: $('allyComms').checked,
@@ -791,8 +797,9 @@
     }
     const total = now + mem + never;
     const bar = (label, n, cls) => `<div class="ibar"><span>${label}</span><div class="track"><div class="fill ${cls}" style="width:${(100 * n / total).toFixed(1)}%"></div></div><b>${Math.round(100 * n / total)}%</b></div>`;
-    $('intelNote').textContent = `${total} tiles`;
     $('intelBars').innerHTML = bar('In sight', now, 'fill-seen') + bar('Remembered', mem, 'fill-mem') + bar('Never seen', never, 'fill-unseen');
+    $('intelStack').innerHTML = [[now, 'fill-seen'], [mem, 'fill-mem'], [never, 'fill-unseen']].map(([n, c]) => `<i class="${c}" style="flex:${n}"></i>`).join('');
+    $('intelNote').textContent = `${Math.round(100 * now / total)}% in sight · ${Math.round(100 * never / total)}% never seen`;
     const items = [];
     let gates = 0, oldGates = 0;
     for (let k = 0; k < G.R; k++) for (let s = 0; s < G.S; s++) if (b.gate[k][s] === 1) { gates++; if (b.seen[k][s] < st.turn) oldGates++; }

@@ -199,10 +199,10 @@ The 3D view draws **only what you know**. This is essential for the research: th
 |---|---|
 | Gold ring, crowned figure labelled "Abhimanyu (you)" | You |
 | Glowing orange tiles with arrows | Your legal moves (red means breaking through a sentinel) |
-| Ranks of red soldiers behind a low red wall | A wall you can see **right now** |
+| Ranks of soldiers behind a dark bronze wall with a pale stone coping | A wall you can see **right now** |
 | A faded grey wall | A wall you **remember**. The formation may have turned since. |
 | Misty, glass-like wall | A wall you have **never seen** |
-| Pillars with torches, flags and a glowing threshold | A gate: a way through |
+| Pillars with torches, a bronze lintel, banners and a glowing threshold | A gate: a way through |
 | Faded pillars with no flames | A gate you remember. It may have moved. |
 | A red barricade across an outer gate | A sealed gate |
 | Lit floor / dim floor / dark floor | Visible now / seen before / never seen |

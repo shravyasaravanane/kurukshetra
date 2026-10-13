@@ -73,11 +73,11 @@
     renderer.shadowMap.type = T.PCFSoftShadowMap;
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.toneMapping = T.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.88;
+    renderer.toneMappingExposure = 1.0;
 
     const scene = new T.Scene();
-    const FOG_SRGB = 0xc98d5e;
-    scene.fog = new T.Fog(FOG_SRGB, 80, 230);
+    const FOG_SRGB = 0x3a281c;
+    scene.fog = new T.Fog(FOG_SRGB, 70, 210);
     const camera = new T.PerspectiveCamera(48, 1, 0.5, 900);
 
     // ---------------- post-processing: bloom, vignette, gamma, FXAA ----------------
@@ -94,38 +94,38 @@
       if (sky) sky.material.uniforms.toLinear.value = 1;
       scene.fog.color.set(FOG_SRGB).convertSRGBToLinear();
       composer.addPass(new T.RenderPass(scene, camera));
-      bloom = new T.UnrealBloomPass(new T.Vector2(256, 256), 0.5, 0.4, 0.9);
+      bloom = new T.UnrealBloomPass(new T.Vector2(256, 256), 0.6, 0.45, 0.86);
       composer.addPass(bloom);
       const finalPass = new T.ShaderPass(FINAL_SHADER);
       composer.addPass(finalPass);
-      if (T.VignetteShader) { const v = new T.ShaderPass(T.VignetteShader); v.uniforms.offset.value = 0.95; v.uniforms.darkness.value = 1.1; composer.addPass(v); }
+      if (T.VignetteShader) { const v = new T.ShaderPass(T.VignetteShader); v.uniforms.offset.value = 1.0; v.uniforms.darkness.value = 1.35; composer.addPass(v); }
       if (T.FXAAShader) { fxaa = new T.ShaderPass(T.FXAAShader); composer.addPass(fxaa); }
     }
 
     // ---------------- sky, light, ground ----------------
     const sky = new T.Mesh(new T.SphereGeometry(500, 32, 16), new T.ShaderMaterial({
       side: T.BackSide, depthWrite: false, fog: false,
-      uniforms: { top: { value: new T.Color('#2b3f6b') }, mid: { value: new T.Color('#e69a5c') }, bottom: { value: new T.Color('#c98d5e') }, toLinear: { value: 0 } },
+      uniforms: { top: { value: new T.Color('#151b30') }, mid: { value: new T.Color('#9a5230') }, bottom: { value: new T.Color('#3a281c') }, toLinear: { value: 0 } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bottom; uniform float toLinear; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, pow(clamp(h*1.6,0.0,1.0),0.7)) : bottom; if (toLinear > 0.5) c = pow(c, vec3(2.2)); gl_FragColor = vec4(c,1.0); }',
     }));
     scene.add(sky);
     // The sun, low over the battlefield
     const sunDisc = new T.Sprite(new T.SpriteMaterial({ map: glowTexture('rgba(255,214,150,1)'), color: 0xffe0b0, fog: false, depthWrite: false, transparent: true, blending: T.AdditiveBlending }));
-    sunDisc.position.set(-260, 90, -240); sunDisc.scale.set(120, 120, 1);
+    sunDisc.position.set(-260, 60, -240); sunDisc.scale.set(110, 110, 1);
     scene.add(sunDisc);
 
-    const hemi = new T.HemisphereLight(0xffe4c4, 0x3a2a1c, 0.55);
+    const hemi = new T.HemisphereLight(0x9aa6c4, 0x2a1c12, 0.36); // cool sky fill, dark earth bounce
     scene.add(hemi);
-    const sun = new T.DirectionalLight(0xffd6a0, 1.3);
-    sun.position.set(-50, 70, -45);
+    const sun = new T.DirectionalLight(0xffc98a, 1.65);
+    sun.position.set(-62, 40, -34);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -48, right: 48, top: 48, bottom: -48, near: 10, far: 220 });
     sun.shadow.bias = -0.0008;
     scene.add(sun);
 
-    const groundTex = noiseTexture('#8f6d42', 0.2, 256);
+    const groundTex = noiseTexture('#3a2a1c', 0.26, 256);
     groundTex.repeat.set(60, 60);
     const ground = new T.Mesh(new T.CircleGeometry(600, 64), new T.MeshStandardMaterial({ map: groundTex, roughness: 1 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02;
@@ -159,6 +159,17 @@
       g.rotateX(-Math.PI / 2);
       return g;
     }
+    // A slightly wider stone course along the top of a wall, sitting from h to h + 0.16.
+    function copingGeom(R, h) {
+      const a1 = -segA / 2 + 0.004, a2 = segA / 2 - 0.004, w = WALL_T / 2 + 0.09;
+      const sh = new T.Shape();
+      sh.absarc(0, 0, R + w, -a2, -a1, false);
+      sh.absarc(0, 0, R - w, -a1, -a2, true);
+      const g = new T.ExtrudeGeometry(sh, { depth: 0.16, bevelEnabled: false, curveSegments: 10 });
+      g.rotateX(-Math.PI / 2);
+      g.translate(0, h, 0);
+      return g;
+    }
     function wallGeom(R, h) {
       const a1 = -segA / 2 + 0.004, a2 = segA / 2 - 0.004;
       const sh = new T.Shape();
@@ -169,14 +180,16 @@
       return g;
     }
 
-    const stoneTex = noiseTexture('#b89a72', 0.16, 256, true);
+    const stoneTex = noiseTexture('#b89a72', 0.22, 256, true);
     stoneTex.repeat.set(1.5, 0.6);
     const M = {
-      stone: new T.MeshStandardMaterial({ map: stoneTex, color: 0x9c3a2a, roughness: 0.75 }),
-      stoneOuter: new T.MeshStandardMaterial({ map: stoneTex, color: 0x7e2a20, roughness: 0.75 }),
+      stone: new T.MeshStandardMaterial({ map: stoneTex, color: 0x4a2c1c, roughness: 0.82 }),
+      stoneOuter: new T.MeshStandardMaterial({ map: stoneTex, color: 0x3a2014, roughness: 0.82 }),
+      coping: new T.MeshStandardMaterial({ map: stoneTex, color: 0x6a4c2e, roughness: 0.7 }),
+      bronze: new T.MeshStandardMaterial({ color: 0x8c6a3c, metalness: 0.65, roughness: 0.38 }),
       stale: new T.MeshStandardMaterial({ map: stoneTex, color: 0x9a8f86, roughness: 0.9, transparent: true, opacity: 0.42, depthWrite: false }),
       ghost: new T.MeshStandardMaterial({ color: 0x9fb6d0, roughness: 0.3, transparent: true, opacity: 0.13, depthWrite: false, emissive: 0x23344a, emissiveIntensity: 0.6 }),
-      pillar: new T.MeshStandardMaterial({ color: 0x7b5534, roughness: 0.7 }),
+      pillar: new T.MeshStandardMaterial({ map: stoneTex, color: 0x6b4a30, roughness: 0.7 }),
       pillarStale: new T.MeshStandardMaterial({ color: 0x8a8580, roughness: 0.7, transparent: true, opacity: 0.45 }),
       gold: new T.MeshStandardMaterial({ color: 0xe3b23c, metalness: 0.6, roughness: 0.3, emissive: 0x6b4a10, emissiveIntensity: 0.4 }),
       sealed: new T.MeshStandardMaterial({ color: 0x5a1712, roughness: 0.8, emissive: 0x3a0806, emissiveIntensity: 0.6 }),
@@ -185,8 +198,8 @@
       highlightBad: new T.MeshBasicMaterial({ color: 0xff4a3d, transparent: true, opacity: 0.35, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }),
     };
     const FLOOR = {
-      lit: new T.Color('#b88f58'), seen: new T.Color('#55473d'), fog: new T.Color('#141118'),
-      field: new T.Color('#748a4a'), fieldSeen: new T.Color('#3d4a2b'), fieldFog: new T.Color('#171b12'),
+      lit: new T.Color('#82603a'), seen: new T.Color('#2e241c'), fog: new T.Color('#0a0809'),
+      field: new T.Color('#54432a'), fieldSeen: new T.Color('#231d14'), fieldFog: new T.Color('#0d0b08'),
     };
 
     let floors = [], walls = [], floorPick = [], coreMesh = null, highlightPool = [], beacon = null, lotus = null, exitBeacons = [];
@@ -195,7 +208,7 @@
     let mist = [];
     const MIST_MAT = new T.ShaderMaterial({
       transparent: true, depthWrite: false, side: T.DoubleSide, fog: false,
-      uniforms: { time: { value: 0 }, opacity: { value: 0 }, color: { value: new T.Color('#2a2633') } },
+      uniforms: { time: { value: 0 }, opacity: { value: 0 }, color: { value: new T.Color('#1b1820') } },
       vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
       fragmentShader: [
         'uniform float time; uniform float opacity; uniform vec3 color; varying vec3 vW;',
@@ -255,6 +268,19 @@
         parts.pillars.push(pil);
         parts.flames.push(flame);
       }
+      // A bronze lintel spanning the opening: the gate reads as an architectural doorway
+      {
+        const a = segA / 2 - 0.05, sh = new T.Shape();
+        sh.absarc(0, 0, R + 0.22, -a, a, false);
+        sh.absarc(0, 0, R - 0.22, a, -a, true);
+        const lg = new T.ExtrudeGeometry(sh, { depth: 0.26, bevelEnabled: false, curveSegments: 12 });
+        lg.rotateX(-Math.PI / 2);
+        const lintel = new T.Mesh(lg, M.bronze);
+        lintel.position.y = h + 0.62;
+        lintel.castShadow = true;
+        g.add(lintel);
+        parts.lintel = lintel;
+      }
       // A glowing threshold on the ground: reads as "a way through" from any angle
       const banner = new T.Mesh((() => { const a = segA / 2 - 0.12; const gg = new T.RingGeometry(R - 0.9, R + 0.9, 8, 1, -a, 2 * a); gg.rotateX(-Math.PI / 2); return gg; })(),
         new T.MeshBasicMaterial({ color: outer ? 0xffb347 : 0xffd27a, transparent: true, opacity: 0.55, depthWrite: false, side: T.DoubleSide }));
@@ -263,7 +289,7 @@
       parts.banner = banner;
       for (const side of [-1, 1]) {
         const a = side * (segA / 2 - 0.05);
-        const flag = new T.Mesh(new T.PlaneGeometry(0.9, 1.3), new T.MeshStandardMaterial({ color: outer ? 0xd9622b : 0xe39b2d, side: T.DoubleSide, roughness: 0.8 }));
+        const flag = new T.Mesh(new T.PlaneGeometry(0.9, 1.3), new T.MeshStandardMaterial({ color: outer ? 0xa8402a : 0xc98a2e, side: T.DoubleSide, roughness: 0.85 }));
         flag.position.set(Math.cos(a) * R, h + 0.2, Math.sin(a) * R + side * 0.0);
         flag.rotation.y = -a;
         flag.position.x += Math.cos(a) * 0.55;
@@ -337,7 +363,7 @@
       lotus.position.y = ringH(0) + 0.1;
       formation.add(lotus);
       // Stone risers between terraces give the formation real depth.
-      const riserMat = new T.MeshStandardMaterial({ map: stoneTex, color: 0x5b4636, roughness: 0.9 });
+      const riserMat = new T.MeshStandardMaterial({ map: stoneTex, color: 0x4a3524, roughness: 0.92 });
       for (let r = 0; r <= geom.R; r++) {
         const hi = ringH(r), lo = ringH(r + 1), h = hi - lo;
         if (h <= 0.001) continue;
@@ -369,10 +395,15 @@
         const outer = k === geom.R;
         const h = outer ? 1.5 : k === 0 ? 0.9 : 1.05;
         const wg = wallGeom(R, h);
+        const cg = copingGeom(R, h);
         walls[k] = [];
         for (let s = 0; s < geom.S; s++) {
           const solid = new T.Mesh(wg, outer ? M.stoneOuter : M.stone);
           solid.castShadow = true; solid.receiveShadow = true;
+          const cap = new T.Mesh(cg, M.coping);
+          cap.castShadow = true;
+          solid.add(cap);
+          solid.userData.cap = cap;
           const ghost = new T.Mesh(wg, M.ghost);
           for (const m of [solid, ghost]) { m.rotation.y = -angleOf(s); m.position.y = ringH(k + 1); m.visible = false; m.scale.y = 0.001; formation.add(m); }
           walls[k][s] = { k, s, R, h, outer, solid, ghost, gate: null, state: 'none', stale: false };
@@ -380,8 +411,8 @@
       }
       // Living walls: a rank of Kaurava soldiers behind every wall segment you know about
       const total = (geom.R + 1) * geom.S * PER;
-      troopBody = new T.InstancedMesh(new T.CylinderGeometry(0.27, 0.36, 1.45, 7), new T.MeshStandardMaterial({ color: 0x5e1a17, roughness: 0.8 }), total);
-      troopHead = new T.InstancedMesh(new T.ConeGeometry(0.26, 0.55, 7), new T.MeshStandardMaterial({ color: 0x9c8a74, metalness: 0.45, roughness: 0.4 }), total);
+      troopBody = new T.InstancedMesh(new T.CylinderGeometry(0.27, 0.36, 1.45, 7), new T.MeshStandardMaterial({ color: 0x3a2a22, roughness: 0.85 }), total);
+      troopHead = new T.InstancedMesh(new T.ConeGeometry(0.26, 0.55, 7), new T.MeshStandardMaterial({ color: 0xa8854a, metalness: 0.6, roughness: 0.35 }), total);
       troopBody.castShadow = troopHead.castShadow = true;
       dummy.scale.set(0, 0, 0); dummy.updateMatrix();
       for (let i = 0; i < total; i++) { troopBody.setMatrixAt(i, dummy.matrix); troopHead.setMatrixAt(i, dummy.matrix); }
@@ -392,7 +423,7 @@
       ringLabels = [];
       for (let r = 1; r <= geom.FIELD; r++) {
         const text = r === geom.FIELD ? 'FIELD' : 'RING ' + r;
-        const m = new T.Mesh(new T.PlaneGeometry(4.4, 1.1), new T.MeshBasicMaterial({ map: textTexture(text, { font: '800 80px system-ui, sans-serif', fg: 'rgba(255,248,232,1)' }), transparent: true, depthWrite: false, opacity: 0.85, toneMapped: false }));
+        const m = new T.Mesh(new T.PlaneGeometry(4.4, 1.1), new T.MeshBasicMaterial({ map: textTexture(text, { font: '600 74px Cinzel, Georgia, serif', fg: 'rgba(246,230,196,1)' }), transparent: true, depthWrite: false, opacity: 0.78, toneMapped: false }));
         m.userData.r = r;
         m.renderOrder = 1;
         formation.add(m);
@@ -431,10 +462,11 @@
       w.state = state;
       w.stale = stale;
       troopsTo(w, state === 'wall' && !stale ? 1 : 0, animate);
-      if (state === 'wall') w.solid.material = stale ? M.stale : (w.outer ? M.stoneOuter : M.stone);
+      if (state === 'wall') { w.solid.material = stale ? M.stale : (w.outer ? M.stoneOuter : M.stone); w.solid.userData.cap.material = stale ? M.stale : M.coping; }
       if (state === 'gate' || state === 'sealed') {
         const p = w.gate.userData;
         for (const pl of p.pillars) pl.material = stale ? M.pillarStale : M.pillar;
+        p.lintel.material = stale ? M.pillarStale : M.bronze;
         for (const f of p.flames) f.visible = !stale && state === 'gate';
         p.banner.material.opacity = stale ? 0.15 : 0.55;
         p.banner.material.color.set(stale ? 0x9a9088 : (w.outer ? 0xffb347 : 0xffd27a));
@@ -487,8 +519,8 @@
       ambient = new T.Group();
       // Armies around the field: instanced figures
       const fig = new T.CylinderGeometry(0.35, 0.45, 2.0, 6);
-      const red = new T.InstancedMesh(fig, new T.MeshStandardMaterial({ color: 0x7a2420, roughness: 0.8 }), 420);
-      const blue = new T.InstancedMesh(fig, new T.MeshStandardMaterial({ color: 0x2c4f86, roughness: 0.8 }), 160);
+      const red = new T.InstancedMesh(fig, new T.MeshStandardMaterial({ color: 0x3a1c16, roughness: 0.9 }), 420);
+      const blue = new T.InstancedMesh(fig, new T.MeshStandardMaterial({ color: 0x1e2a40, roughness: 0.9 }), 160);
       const m4 = new T.Matrix4();
       let ri = 0, bi = 0;
       for (let i = 0; i < 580; i++) {
@@ -507,12 +539,12 @@
         for (let i = 0; i < src.count; i++) { src.getMatrixAt(i, m); m.decompose(p, q, s); p.y = 2.25; m.compose(p, q, s); h.setMatrixAt(i, m); }
         return h;
       };
-      ambient.add(mkHeads(red, 0x9c8a74), mkHeads(blue, 0xd9cfb8));
+      ambient.add(mkHeads(red, 0x6e5a3e), mkHeads(blue, 0x8a8270));
       red.castShadow = blue.castShadow = true;
       ambient.add(red, blue);
       // Tents and flags far out
       const tent = new T.ConeGeometry(2.4, 3.2, 6);
-      const tents = new T.InstancedMesh(tent, new T.MeshStandardMaterial({ color: 0xe6d3ad, roughness: 0.9 }), 70);
+      const tents = new T.InstancedMesh(tent, new T.MeshStandardMaterial({ color: 0x6e5a42, roughness: 0.95 }), 70);
       for (let i = 0; i < 70; i++) {
         const a = Math.random() * TAU, rad = 95 + Math.random() * 50;
         m4.makeTranslation(Math.cos(a) * rad, 1.6, Math.sin(a) * rad);
@@ -523,7 +555,7 @@
         const a = (i / 24) * TAU, rad = 58;
         const pole = new T.Mesh(new T.CylinderGeometry(0.08, 0.08, 6, 5), M.pillar);
         pole.position.set(Math.cos(a) * rad, 3, Math.sin(a) * rad);
-        const flag = new T.Mesh(new T.PlaneGeometry(1.6, 1.0), new T.MeshStandardMaterial({ color: i % 6 === 0 ? 0x2c4f86 : 0x9c2a22, side: T.DoubleSide }));
+        const flag = new T.Mesh(new T.PlaneGeometry(1.6, 1.0), new T.MeshStandardMaterial({ color: i % 6 === 0 ? 0x24324c : 0x5e2218, side: T.DoubleSide }));
         flag.position.set(Math.cos(a) * rad + 0.8, 5.3, Math.sin(a) * rad);
         flag.userData.phase = i;
         ambient.add(pole, flag);
@@ -895,17 +927,17 @@
     }
 
     // Time of day: the sun sinks toward the horizon as the turn limit approaches.
-    const SKY = { top: new T.Color('#2b3f6b'), mid: new T.Color('#e69a5c'), duskTop: new T.Color('#1a1830'), duskMid: new T.Color('#b4553a') };
+    const SKY = { top: new T.Color('#151b30'), mid: new T.Color('#9a5230'), duskTop: new T.Color('#0b0c18'), duskMid: new T.Color('#5e2418') };
     function setDay(f) {
       f = Math.max(0, Math.min(1, f || 0));
-      const elev = 70 - 52 * f;
-      sun.position.set(-50 - 20 * f, elev, -45 + 10 * f);
+      const elev = 40 - 24 * f;
+      sun.position.set(-62 - 14 * f, elev, -34 + 8 * f);
       sun.color.setHSL(0.09 - 0.04 * f, 0.75, 0.78 - 0.18 * f);
-      sun.intensity = 1.3 - 0.45 * f;
-      hemi.intensity = 0.55 - 0.18 * f;
+      sun.intensity = 1.65 - 0.5 * f;
+      hemi.intensity = 0.36 - 0.12 * f;
       sky.material.uniforms.top.value.copy(SKY.top).lerp(SKY.duskTop, f);
       sky.material.uniforms.mid.value.copy(SKY.mid).lerp(SKY.duskMid, f);
-      sunDisc.position.set(-260, 90 - 70 * f, -240);
+      sunDisc.position.set(-260, 60 - 48 * f, -240);
     }
 
     function showPath(cells, color) {
@@ -1001,7 +1033,10 @@
 
     // ---------------- camera ----------------
     const cam = { mode: 'menu', yaw: 0, pitch: 0.75, dist: 24, target: new T.Vector3(), userYaw: 0, userPitch: 0, userDist: 0, t: 0, pan: new T.Vector3() };
-    const cur = { yaw: 0, pitch: 0.7, dist: 70, target: new T.Vector3() };
+    const cur = { yaw: 0, pitch: 0.7, dist: 70, target: new T.Vector3(), shift: 0 };
+    // Composition: on wide screens the formation sits beside the text it accompanies
+    // (right of the landing title, left of the after-action report), never under it.
+    const SHIFT = { menu: 0.19, debrief: -0.2 };
     function setCameraMode(m) { cam.mode = m; if (m === 'follow') { cam.userYaw = 0; } }
     function playerYaw() {
       const pc = chars.get('player');
@@ -1010,7 +1045,8 @@
       return Math.hypot(p.x, p.z) > 0.5 ? Math.atan2(p.z, p.x) : Math.PI / 2;
     }
     function desired() {
-      if (cam.mode === 'menu' || cam.mode === 'cinematic') return { yaw: cam.t * 0.06 + 1.2, pitch: 0.45, dist: 72, target: new T.Vector3(0, 2, 0) };
+      if (cam.mode === 'menu') return { yaw: cam.t * 0.035 + 1.2, pitch: 0.4, dist: 64, target: new T.Vector3(0, 1.5, 0) };
+      if (cam.mode === 'cinematic') return { yaw: cam.t * 0.05 + 1.0, pitch: 0.3, dist: 50, target: new T.Vector3(0, 2.5, 0) };
       if (cam.mode === 'overview') return { yaw: cam.userYaw + playerYaw(), pitch: Math.min(1.45, 1.2 + cam.userPitch), dist: Math.max(40, 86 + cam.userDist), target: (() => { const pc = chars.get('player'); return pc ? new T.Vector3(pc.root.position.x * 0.3, 0, pc.root.position.z * 0.3) : new T.Vector3(); })() };
       if (cam.mode === 'top') {
         const fr = geom ? rOut(geom.FIELD) : 40;
@@ -1022,7 +1058,7 @@
         const fr = geom ? rOut(geom.FIELD) : 40;
         return { yaw: cam.userYaw + playerYaw(), pitch: Math.min(1.45, Math.max(0.5, 1.02 + cam.userPitch)), dist: Math.max(22, fr * 1.95 + cam.userDist), target: new T.Vector3(p.x * 0.55 + cam.pan.x, 0, p.z * 0.55 + cam.pan.z) };
       }
-      if (cam.mode === 'debrief') return { yaw: cam.t * 0.05, pitch: 1.1, dist: 84, target: new T.Vector3(-8, 0, 0) };
+      if (cam.mode === 'debrief') return { yaw: cam.t * 0.04, pitch: 1.05, dist: 80, target: new T.Vector3(0, 0, 0) };
       const p = chars.get('player') ? chars.get('player').root.position : new T.Vector3();
       const rad = Math.hypot(p.x, p.z);
       const baseYaw = rad > 0.5 ? Math.atan2(p.z, p.x) : cur.yaw - cam.userYaw;
@@ -1047,6 +1083,11 @@
         shakeAmt = Math.max(0, shakeAmt - dt * 1.2);
       }
       camera.lookAt(cur.target);
+      const w = canvas.clientWidth || window.innerWidth, h = canvas.clientHeight || window.innerHeight;
+      const want = w / h > 1.25 ? (SHIFT[cam.mode] || 0) : 0;
+      cur.shift += (want - cur.shift) * Math.min(1, dt * 2.5);
+      if (Math.abs(cur.shift) > 0.002) camera.setViewOffset(w, h, -cur.shift * w, 0, w, h);
+      else if (camera.view && camera.view.enabled) camera.clearViewOffset();
     }
 
     // ---------------- input ----------------
