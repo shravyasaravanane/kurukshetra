@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: Engine tests and simulator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - name: Simulator smoke run (10 seeds per condition)
+        run: node sim/run.js --seeds 10 --out /tmp/sim
+      - name: Krishna agent pipeline (mock client, no API calls)
+        run: node sim/krishna-eval.js --mock --out /tmp/sim
+
+  python:
+    name: Python analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r analysis/requirements.txt
+      - run: node sim/run.js --seeds 20 --no-report && node sim/counsel.js --seeds 20
+      - run: python analysis/analyze.py
+
+  e2e:
+    name: Browser end-to-end tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:e2e
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kurukshetra Analysis</title>
+<meta name="description" content="Compare gameplay sessions across information and coordination conditions.">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .viz-root {
+    --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+    --grid: #e4ddcd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --grid: #2e2c38; }
+  }
+  :root[data-theme="dark"] .viz-root { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --grid: #2e2c38; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .tile b { display: block; font-size: 1.7rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tile span { color: var(--muted); font-size: .82rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .controls select { width: auto; }
+  .chart-legend { display: flex; gap: 14px; font-size: .8rem; color: var(--muted); margin: 4px 0 6px; flex-wrap: wrap; }
+  .chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .tip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 8px; padding: 6px 10px; font-size: .8rem; z-index: 10; opacity: 0; transition: opacity .1s; }
+  .tip.show { opacity: 1; }
+  .section-title { margin: 24px 0 10px; }
+  td button { font-size: .75rem; padding: 2px 8px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">KURUKSHETRA <span>Analysis</span></div>
+  <nav>
+    <a class="btn ghost small" href="index.html">Back to the game</a>
+    <button class="ghost small" id="themeBtn">Theme</button>
+  </nav>
+</header>
+
+<main class="wrap viz-root">
+  <div class="controls">
+    <label class="small">Show
+      <select id="filterMode">
+        <option value="human">Human sessions</option>
+        <option value="bot">Bot sessions</option>
+        <option value="tutorial">Tutorial sessions</option>
+        <option value="all">All sessions</option>
+      </select>
+    </label>
+    <label class="btn small" for="importFile">Import JSON…</label>
+    <input type="file" id="importFile" accept=".json,application/json" multiple class="hidden">
+    <button class="small" id="demoBtn" title="Generate bot runs across all 12 conditions in this browser">Generate bot baseline</button>
+    <button class="small" id="exportSummary">Export summary CSV</button>
+    <button class="small" id="exportTurns">Export turn-level CSV</button>
+    <button class="small" id="exportJson">Export JSON</button>
+    <button class="small ghost" id="clearBtn">Delete all</button>
+    <span class="muted small" id="status"></span>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div id="emptyState" class="card empty hidden">No sessions yet. Play a round, import exported files, or generate a bot baseline.</div>
+
+  <div id="content">
+    <div class="charts">
+      <section class="card chart">
+        <h2>Escape rate by information level</h2>
+        <p class="muted small">Share of rounds where the player reached the core and got back out. Whiskers show 95% confidence intervals.</p>
+        <div class="chart-legend"><span><i style="background:var(--series-1)"></i>Pandava coordination off</span><span><i style="background:var(--series-2)"></i>Pandava coordination on</span></div>
+        <div id="chartWin"></div>
+      </section>
+      <section class="card chart">
+        <h2>Move quality by information level</h2>
+        <p class="muted small">Each move is compared with the true formation and with the player's own belief.</p>
+        <div class="chart-legend">
+          <span><i style="background:var(--series-1)"></i>Optimal</span>
+          <span><i style="background:var(--series-2)"></i>Information error</span>
+          <span><i style="background:var(--series-3)"></i>Decision error</span>
+          <span><i style="background:var(--series-4)"></i>Route blocked</span>
+        </div>
+        <div id="chartQuality"></div>
+      </section>
+    </div>
+
+    <div id="counselSection" class="hidden">
+      <h2 class="section-title">Krishna's counsel: trust in advice</h2>
+      <div class="charts">
+        <section class="card chart">
+          <h2>How often players followed counsel</h2>
+          <p class="muted small">Calibrated trust means following good counsel and ignoring bad counsel.</p>
+          <div class="chart-legend"><span><i style="background:var(--series-1)"></i>Followed good counsel</span><span><i style="background:var(--series-2)"></i>Followed bad counsel</span></div>
+          <div id="chartCounsel"></div>
+        </section>
+        <section class="card table-scroll"><table id="counselTable"></table>
+          <p class="muted small" style="margin-top:10px">Good counsel = the move an expert with the true map and sight of every sentinel would accept. Appropriate reliance = followed good + ignored bad, over all counsel.</p>
+        </section>
+      </div>
+    </div>
+
+    <h2 class="section-title">By condition</h2>
+    <div class="card table-scroll"><table id="condTable"></table></div>
+
+    <h2 class="section-title">Sessions</h2>
+    <div class="card table-scroll"><table id="sessionTable"></table></div>
+  </div>
+</main>
+<div class="tip" id="tip"></div>
+
+<script src="js/core.js"></script>
+<script src="js/agents.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/advisor.js"></script>
+<script src="js/bots.js"></script>
+<script src="js/logger.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/analysis.js"></script>
+</body>
+</html>

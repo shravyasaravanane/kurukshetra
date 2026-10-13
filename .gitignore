@@ -1,0 +1,9 @@
+results/sim-games.csv
+results/quick/
+results/krishna/
+results/KRISHNA_EVAL_MOCK.md
+node_modules/
+.venv/
+__pycache__/
+.DS_Store
+Thumbs.db

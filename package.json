@@ -1,0 +1,48 @@
+{
+  "name": "kurukshetra",
+  "version": "1.0.0",
+  "description": "A 3D multi-agent strategy game for studying decision-making under incomplete information, inspired by the Chakravyuha from the Mahabharata.",
+  "private": true,
+  "license": "MIT",
+  "author": "Ansika Pandey, Shravya S., Shamitha Velugu and Dharani B",
+  "homepage": "https://shravyasaravanane.github.io/kurukshetra/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shravyasaravanane/kurukshetra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shravyasaravanane/kurukshetra/issues"
+  },
+  "keywords": [
+    "multi-agent",
+    "partial-observability",
+    "decision-making",
+    "game",
+    "threejs",
+    "mahabharata",
+    "research",
+    "llm-agent",
+    "human-ai-trust",
+    "anthropic"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node tools/serve.js",
+    "test": "node tests/run-tests.js",
+    "test:e2e": "node tests/e2e.js",
+    "test:all": "node tests/run-tests.js && node tests/e2e.js",
+    "sim": "node sim/run.js --seeds 200",
+    "sim:quick": "node sim/run.js --seeds 20 --out results/quick",
+    "report": "node sim/report.js",
+    "screenshots": "node tools/screenshots.js",
+    "counsel": "node sim/counsel.js --seeds 200",
+    "krishna:mock": "node sim/krishna-eval.js --mock",
+    "krishna:eval": "node sim/krishna-eval.js",
+    "analysis": "python analysis/analyze.py"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.132.1"
+  }
+}
