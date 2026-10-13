@@ -163,13 +163,16 @@ Score is a convenience for players. The research analysis relies mostly on outco
 | W / A / S / D or the arrow keys | Move in that **screen** direction (relative to the camera) |
 | Space | Wait |
 | E | Scout |
-| Drag | Look around |
+| Drag | Rotate the camera |
+| Right-drag, middle-drag or Shift-drag | Pan |
 | Scroll | Zoom |
-| C | Switch between the tactical view (default, whole formation) and the close-up camera |
+| Double-click | Centre the view on that spot |
+| C, or the camera button | Cycle the views: **Tactical** (default, angled, whole formation) → **Close-up** (behind you) → **Map view** (top-down) |
+| Click a unit or a tile that is not glowing | **Inspect** it (right panel): what you know about it, how far it is by your map, and why you cannot move there |
 | F | Follow Krishna's counsel (when an advisor is on) |
 | Hover a tile | Shows your route there, by what you know, and how many steps it takes |
-| H | Help |
-| Esc | Pause (your thinking time stops counting) |
+| H | Field manual |
+| Esc | Close the inspector; otherwise pause (your thinking time stops counting) |
 
 ### 4.8 Learn to play: six levels, one idea each
 
@@ -219,14 +222,23 @@ The 3D view draws **only what you know**. This is essential for the research: th
 | A blue line from an ally to you | That ally just covered you |
 | "Drums: the walls turn in N turns" (top) | A countdown to the next rotation. It pulses red on the last turn |
 | A teal **K** and ring on a tile | Krishna's counsel for this turn. The panel on the right shows its reason and source |
+| Pale mist over a tile | Ground you have **never seen**. It thins to a haze over ground you remember, and clears where you can see |
+| Rings that rise in terraces toward the centre | Depth: the core is the highest ground, the field the lowest |
+| Red hatching on the ground | **Possible enemy**: a sentinel you saw 1 to 3 turns ago could have walked here since, through walls you believe could be open. It is worked out from your memory only, never from where the sentinel really is |
+| Dashed blue lines from allies | Where an ally says it is heading. Shown only when allies can talk to you (Pandava coordination on) |
+| A pulsing purple ring and "Sealing next turn" | Jayadratha is sealing that gate. Shown only if you can see him, or your allies report it |
+| An ivory outline on a tile, or a gold ring under a unit | What you have selected for inspection |
+| The sun sinking and the sky reddening | The day running out. The status panel shows the turns left |
 | The legend panel (left) | A permanent reminder of the symbols above |
 
-The HUD (the panels over the 3D view) shows:
-- **Top left:** resolve, the turn counter and the current condition.
-- **Top centre:** the three-step goal tracker and a hint.
-- **Right:** your allies, what they are doing, and the order buttons.
-- **Bottom left:** a 2D minimap of what you know.
-- **Bottom right:** the event feed. It only reports what you perceive. For example, a gate being sealed is reported only if you can see Jayadratha or your allies tell you.
+**Screen flow.** Landing → **scenario briefing** (objectives, what you will and will not know, your allies, the enemy, controls; first-time players are offered the levels) → the command interface → **after-action report** → replay of the round. Pause (Esc or the pause button) is available at any time.
+
+The command interface (the panels over the 3D view):
+- **Top bar:** the mission, the three objectives (done ✓ / current / still to come), the drum countdown, the turn counter, and the camera, sound, field manual, pause and leave buttons.
+- **Left:** your status (where you are, resolve, daylight, condition), then **Intelligence**: how much of the formation is in sight, remembered or never seen, how many gates you know and how many of those are memories, recent enemy sightings, and a reminder when your allies know things you cannot hear.
+- **Right:** Krishna's counsel (when an advisor is on), the **inspector**, and your allies with their status and order buttons. Clicking an ally selects and centres it.
+- **Bottom:** the action bar (Move, Wait, Scout) with an **action note** above it that reports each result: *done* (green), *failed* (red, e.g. "That way is closed"), *queued* (gold, dashed: an order that goes with your next action) or *unavailable* (dashed, with the reason).
+- **Bottom left:** a 2D minimap of what you know. **Bottom right:** the chronicle. It only reports what you perceive. For example, a gate being sealed is reported only if you can see Jayadratha or your allies tell you.
 
 ---
 
@@ -428,6 +440,21 @@ Outcome (`result`, `category`), `turns`, `coreReached`, `coreTurn`, `resolve`, `
 ---
 
 ## 10. Analysis, export and replay
+
+### 10.0 The after-action report (end of every round)
+
+Everything on it is computed from this round's log or from the rounds stored in this browser. Nothing is estimated.
+
+- **Objectives:** each one, achieved or not, and on which turn.
+- **Metrics:** score, turns, resolve, share of best moves, scouts, orders, map known and map wrong, average thinking time, gates sealed, and the counsel figures when an advisor was on.
+- **Turn by turn:** one bar per turn coloured by move class, with rotations, resolve lost, the breach and the core marked. Hover a bar for that turn.
+- **Turning points:** the moments that decided the round (breaking in, the first rotation and the first one aimed at you, orders, the first information error, being caught, covers, seals, counsel followed or ignored).
+- **Your decisions:** the move-quality bar and the plain-language lesson.
+- **What the others did:** each ally (covered you, held a gate, scouted, could not move), Jayadratha (seals, and attempts stopped), the sentinels (turns they pressed you, resolve cost) and Drona (rotations, and how many were aimed using sentinel reports).
+- **What you knew, turn by turn:** the share of the formation you knew, and how much of that was wrong in truth.
+- **Compared with your earlier rounds:** escape rate and best-move share by information level, from rounds without counsel stored in this browser. With no earlier rounds it says so instead of showing empty numbers.
+- **Four viewpoints** for the 3D battlefield: *You knew it*, *It truly was*, *Your allies knew it* (their maps merged) and *The Kauravas knew it* (the formation in full, and you where they last placed you).
+- **Replay this round** opens the verified replay and comes back to the report.
 
 ### 10.1 The dashboard (`analysis.html`)
 
@@ -654,8 +681,11 @@ Each policy faced each advisor on the same 200 formations.
 | `js/krishna.js` | The Claude tool-use advisor agent (tools read only the player's knowledge) |
 | `sim/counsel.js`, `sim/krishna-eval.js` | Counsel experiment (report + CSV); LLM-agent evaluation harness (mock and live) |
 | `analysis/analyze.py` | Python analysis: pandas tables, logistic regression (IRLS in NumPy), matplotlib figures |
-| `js/levels.js` | The five learn-to-play levels, as pure data (tested for winnability) |
-| `js/ui.js` | Menu, intro, learn-to-play levels, HUD, input (click and camera-relative keys), event narration, pause, settings, debrief, study mode, replay |
+| `js/levels.js` | The six learn-to-play levels, as pure data (tested for winnability) |
+| `js/views.js` | Knowledge views for the interface, each stating whose knowledge it uses: possible-enemy zones, ally plans, sealing, tile reports, and the post-game Kaurava and ally pictures |
+| `js/insights.js` | The scenario briefing and the after-action report (objectives, turning points, agent summaries, knowledge series, comparison), derived from the real state and log |
+| `css/game.css` | The design system: colour tokens, bundled fonts (Cinzel, Cormorant Garamond, Inter), components and every screen |
+| `js/ui.js` | Landing, intro, briefing, learn-to-play levels, command interface, inspector and selection, input (click and camera-relative keys), action notes, event narration, pause, settings, after-action report, study mode, replay |
 | `js/analysis.js` | Dashboard charts, tables, import/export, bot baseline |
 | `sim/run.js`, `sim/report.js` | Experiment runner, report and figure generator |
 | `tests/run-tests.js` | Unit tests |
@@ -693,8 +723,8 @@ Each policy faced each advisor on the same 200 formations.
 
 | Layer | What is checked |
 |---|---|
-| **Unit tests** (34) | Geometry symmetry, id round-trips, rotation keeping the gate count, every seed being solvable, same seed giving the same formation, high information never stale, medium information going stale, low information starting unknown, scout radius, map sharing, walls blocking moves, breach detection, two-turn sealing, holding preventing sealing, sealed gates blocking Pandavas, cover reducing drain, resolve never rising, **deterministic replay**, every game ending, move classes adding up, zero info-errors under high information, JSON/CSV round-trips, aggregation, Wilson intervals, z-test, deterministic counsel, reliability rates, reliance accounting, the agent's information constraint, the agent loop against a mock Claude client (parallel tools, illegal-move correction, fallbacks), refusal handling, and Krishna's insight using only the player's knowledge |
-| **End-to-end tests** (8) | The real game in headless Chrome: menu, levels 1 and 2 played to completion with progress unlocking, keyboard moves, the pause menu stopping input, a full study flow (four practice levels, then three counterbalanced rounds), the dashboard, counsel (marked tile, following with F, logging, and the AI agent's no-key message), **replay verification**, and no JavaScript or console errors |
+| **Unit tests** (41) | Geometry symmetry, id round-trips, rotation keeping the gate count, every seed being solvable, same seed giving the same formation, high information never stale, medium information going stale, low information starting unknown, scout radius, map sharing, walls blocking moves, breach detection, two-turn sealing, holding preventing sealing, sealed gates blocking Pandavas, cover reducing drain, resolve never rising, **deterministic replay**, every game ending, move classes adding up, zero info-errors under high information, JSON/CSV round-trips, aggregation, Wilson intervals, z-test, deterministic counsel, reliability rates, reliance accounting, the agent's information constraint, the agent loop against a mock Claude client (parallel tools, illegal-move correction, fallbacks), refusal handling, Krishna's insight using only the player's knowledge, **no truth leaking into the interface views** (possible-enemy zones ignore true sentinel positions and never cover visible ground; tile reports describe walls from the belief; ally plans and sealing stay hidden without coordination or sight), the briefing matching the configuration, and the report agreeing with the log and summary |
+| **End-to-end tests** (9) | The real game in headless Chrome: menu, levels 1 and 2 played to completion with progress unlocking, keyboard moves, the pause menu stopping input, the briefing, the tile and unit inspector, the camera cycle, the after-action report with its four viewpoints and replay-and-return, a full study flow (four practice levels, then three counterbalanced rounds), the dashboard, counsel (marked tile, following with F, logging, and the AI agent's no-key message), **replay verification**, and no JavaScript or console errors |
 | **CI** | Unit tests, a simulator smoke run, the mock agent evaluation, the browser suite and the Python analysis on every push (`.github/workflows/ci.yml`) |
 | **Visual checks** | `npm run screenshots` regenerates every README image from the live game |
 

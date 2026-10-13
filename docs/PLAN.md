@@ -127,6 +127,7 @@ A headless **simulator** runs scripted bot players across every condition on hun
 | **M9b** | Statistics | Wilson 95% intervals, two-proportion z-tests, auto-generated report and figures | Done |
 | **M10b** | Engineering | Browser end-to-end tests, CI, GitHub Pages workflow, docs/GUIDE.md | Done |
 | **M10c** | Krishna's counsel | Scripted advisors of controlled reliability, a Claude tool-use advisor agent restricted to the player's knowledge, reliance metrics, level 6, counsel study protocol, counsel experiment, agent evaluation harness, Python analysis | Done |
+| **M10d** | Product upgrade | One design system (obsidian and gold, bundled fonts); landing → briefing → command interface → after-action report flow; terraced 3D formation with mist, possible-enemy zones, ally plans and sealing markers; inspector and selection; camera pan and map view; action-result states; report with objectives, turn strip, turning points, agent summaries, four viewpoints and replay. Interface views tested for truth leaks | Done |
 | **M11** | Tuning & pilot | Balance via simulator, pilot play-tests with classmates | Started: first simulator tuning done |
 | **M12** | User study & report | Faculty/tester sessions, analysis, write-up | To do |
 

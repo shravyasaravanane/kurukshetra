@@ -15,7 +15,10 @@
     const c = document.createElement('canvas');
     c.width = 512; c.height = 160;
     const g = c.getContext('2d');
-    g.font = '700 60px Georgia, serif';
+    // shrink long names so the tag never clips
+    let size = 60;
+    g.font = `700 ${size}px Georgia, serif`;
+    while (g.measureText(text).width > 440 && size > 34) { size -= 2; g.font = `700 ${size}px Georgia, serif`; }
     const w = Math.min(508, g.measureText(text).width + 56);
     g.fillStyle = 'rgba(10,8,14,0.72)';
     const x = (512 - w) / 2;

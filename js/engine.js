@@ -331,6 +331,7 @@
       visibleEnemies: [state.gatekeeper, ...state.sentinels].filter((k) => player.visible.has(k.cell)).length,
       allies: Object.fromEntries(state.allies.map((a) => [a.id, a.mode + ':' + (agentActions[a.id] || '-')])),
       events: events.map((e) => e.type),
+      rotationAdaptive: !!(events.find((e) => e.type === 'rotation') || {}).adaptive,
       advice: adviceRec,
       followed: adviceRec ? (type === 'move' && player.cell === adviceRec.to) : null,
     });

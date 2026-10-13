@@ -5,55 +5,78 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kurukshetra</title>
 <meta name="description" content="A 3D multi-agent strategy game about decision-making under incomplete information, inspired by the Chakravyuha.">
-<link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/game.css">
 </head>
 <body class="game-body">
 <canvas id="world" aria-label="The battlefield"></canvas>
 
+<!-- Icon set: one consistent line style, drawn at 24px -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></symbol>
+  <symbol id="i-wait" viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></symbol>
+  <symbol id="i-scout" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-follow" viewBox="0 0 24 24"><path d="M5 19c6-1 10-5 14-14-9 3-13 7-14 14zM5 19l7-7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 4M12 17.5v.5"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-exit" viewBox="0 0 24 24"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.5 6.2A10 10 0 0112 6c6.5 0 10 6 10 6a17 17 0 01-3.2 3.8M6.5 7.6C3.8 9.3 2 12 2 12s3.5 6 10 6a9.7 9.7 0 004.2-.9"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2zM12 10v4M12 17v.5"/></symbol>
+  <symbol id="i-drum" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="8" ry="3"/><path d="M4 7v9c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 11l16 0"/></symbol>
+  <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 108-8H8M8 4L5 7l3 3"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
 <div id="loading" class="loading">
   <div class="loading-inner">
-    <div class="title">KURUKSHETRA</div>
+    <div class="wordmark">KURUKSHETRA</div>
     <div class="loading-bar"><div></div></div>
-    <div class="muted small">Raising the Chakravyuha…</div>
+    <div class="loading-note">Raising the Chakravyuha…</div>
   </div>
 </div>
 
-<!-- ================= MAIN MENU ================= -->
-<section id="menu" class="overlay menu">
-  <div class="menu-panel">
-    <div class="kicker">Mahabharata · Drona Parva · The thirteenth day</div>
-    <h1 class="title">KURUKSHETRA</h1>
-    <div class="subtitle">The Chakravyuha</div>
-    <p class="pitch">Drona's army forms a turning, many-layered spiral. Abhimanyu knows how to break <em>in</em>, but not how to get <em>out</em>. You take his place. You see only part of the battlefield, and every ally and enemy acts on what <em>they</em> know.</p>
-    <div class="menu-buttons">
-      <button class="big primary" id="playBtn">▶&nbsp; Play</button>
-      <button class="big" id="tutorialBtn">Learn to play <span class="muted small">· 5 short levels</span></button>
-      <button class="big" id="studyBtn">Study session</button>
+<!-- ================= LANDING ================= -->
+<section id="menu" class="screen landing">
+  <div class="landing-copy">
+    <div class="eyebrow">Mahabharata · Drona Parva · The thirteenth day</div>
+    <h1 class="wordmark-xl">KURUKSHETRA</h1>
+    <p class="landing-sub">The Chakravyuha</p>
+    <p class="landing-pitch">Drona's army forms a turning, many-ringed formation. Abhimanyu knows how to break <em>in</em>, but not how to get <em>out</em>. You take his place. You will see only part of the battlefield, and every ally and enemy acts on what <em>they</em> know.</p>
+    <div class="cta-row">
+      <button class="btn btn-primary btn-lg" id="playBtn">Begin</button>
+      <button class="btn btn-lg" id="tutorialBtn">Learn to play <span class="btn-note">6 short levels</span></button>
+      <button class="btn btn-ghost btn-lg" id="studyBtn">Study session</button>
     </div>
-    <div class="menu-links">
-      <button class="link" id="settingsToggle">Experiment settings ▾</button>
+    <nav class="landing-links" aria-label="More">
+      <button class="link" id="settingsToggle">Experiment settings</button>
       <button class="link" id="introBtn">Watch the intro</button>
       <button class="link" id="aboutBtn">About the project</button>
       <button class="link" id="menuSettingsBtn">Graphics &amp; sound</button>
-      <a class="link" href="analysis.html">Analysis dashboard</a>
-    </div>
+      <a class="link" href="analysis.html">Research dashboard</a>
+    </nav>
 
-    <div id="settings" class="settings hidden">
+    <div id="settings" class="drawer panel hidden">
+      <div class="panel-head"><h3>Experiment settings</h3></div>
       <div class="set-row">
         <span class="set-label">Information</span>
-        <div class="seg" role="radiogroup">
+        <div class="seg" role="radiogroup" aria-label="Information level">
           <label><input type="radio" name="info" value="low"><span>Low</span></label>
           <label><input type="radio" name="info" value="medium" checked><span>Medium</span></label>
           <label><input type="radio" name="info" value="high"><span>High</span></label>
         </div>
       </div>
       <p class="set-help" id="infoHelp"></p>
-      <label class="set-check"><input type="checkbox" id="allyComms" checked> Pandava coordination <span class="muted">· allies share what they see and take orders</span></label>
-      <label class="set-check"><input type="checkbox" id="enemyComms" checked> Kaurava coordination <span class="muted">· sentinels share sightings, and Drona turns the formation against you</span></label>
+      <label class="set-check"><input type="checkbox" id="allyComms" checked> Pandava coordination <span class="muted">allies share what they see and take orders</span></label>
+      <label class="set-check"><input type="checkbox" id="enemyComms" checked> Kaurava coordination <span class="muted">sentinels share sightings; Drona turns the walls against you</span></label>
       <div class="set-row">
         <span class="set-label">Counsel</span>
-        <div class="seg" role="radiogroup">
+        <div class="seg" role="radiogroup" aria-label="Counsel">
           <label><input type="radio" name="advisor" value="none" checked><span>None</span></label>
           <label><input type="radio" name="advisor" value="reliable"><span>Reliable</span></label>
           <label><input type="radio" name="advisor" value="unreliable"><span>Careless</span></label>
@@ -62,231 +85,294 @@
         </div>
       </div>
       <p class="set-help" id="advisorHelp">No one advises you.</p>
-      <label class="set-check"><input type="checkbox" id="explainAdvice" checked> Show Krishna's reasons <span class="muted">· advice comes with a one-line explanation</span></label>
+      <label class="set-check"><input type="checkbox" id="explainAdvice" checked> Show Krishna's reasons <span class="muted">counsel comes with a one-line explanation</span></label>
       <div id="llmFields" class="llm-fields hidden">
-        <label class="field">Anthropic API key <span class="muted small">(kept only in this browser; never sent anywhere except the Anthropic API)</span><input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off"></label>
+        <label class="field">Anthropic API key <span class="muted">kept only in this browser</span><input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off"></label>
         <div class="set-row">
-          <span class="set-label">Model</span><input type="text" id="llmModel" value="claude-opus-5-5" style="width:190px">
-          <span class="set-label" style="width:auto">Effort</span>
-          <select id="llmEffort" style="width:auto"><option value="low" selected>low (fast)</option><option value="medium">medium</option><option value="high">high</option></select>
+          <span class="set-label">Model</span><input type="text" id="llmModel" value="claude-opus-5-5" class="input-sm">
+          <span class="set-label set-label-auto">Effort</span>
+          <select id="llmEffort" class="input-sm"><option value="low" selected>low (fast)</option><option value="medium">medium</option><option value="high">high</option></select>
         </div>
-        <p class="set-help">Each turn Krishna (Claude) inspects only what you know through tools, then advises. Expect a few seconds per turn. For a local research build only: the key is used directly from the browser.</p>
+        <p class="set-help">Each turn Krishna (Claude) inspects only what you know through tools, then advises. Expect a few seconds per turn. A local research build: the key is used directly from the browser.</p>
       </div>
       <div class="set-row">
         <span class="set-label">Seed</span>
-        <input type="number" id="seed" min="1" step="1">
-        <button class="small" id="botBtn">Watch a bot play</button>
+        <input type="number" id="seed" min="1" step="1" class="input-sm">
+        <button class="btn btn-sm" id="botBtn">Watch a bot play</button>
       </div>
     </div>
 
-    <div id="studyForm" class="settings hidden">
+    <div id="studyForm" class="drawer panel hidden">
+      <div class="panel-head"><h3>Study session</h3></div>
       <label class="field">Participant ID<input type="text" id="participantId" placeholder="e.g. P07" autocomplete="off"></label>
       <div class="set-row">
         <span class="set-label">Protocol</span>
-        <div class="seg" role="radiogroup">
+        <div class="seg" role="radiogroup" aria-label="Protocol">
           <label><input type="radio" name="protocol" value="info" checked><span>Information study</span></label>
           <label><input type="radio" name="protocol" value="counsel"><span>Counsel study</span></label>
         </div>
       </div>
       <p class="set-help" id="protocolHelp">Four short practice levels come first, then three rounds. The conditions are assigned and counterbalanced from the ID. The practice levels are not analysed.</p>
-      <button class="primary" id="studyStart">Begin study</button>
+      <button class="btn btn-primary" id="studyStart">Begin study</button>
     </div>
+  </div>
+  <footer class="landing-foot">Mini Research &amp; Innovation Project · Amrita Vishwa Vidyapeetham, Chennai · <i>Strategic Lessons from the Mahabharata</i></footer>
+</section>
+
+<!-- ================= SCENARIO BRIEFING ================= -->
+<section id="briefing" class="screen briefing hidden" aria-label="Scenario briefing">
+  <div class="brief panel">
+    <header class="brief-head">
+      <div class="eyebrow" id="bfKicker">Scenario briefing</div>
+      <h2 class="display" id="bfTitle">The Chakravyuha</h2>
+      <p class="brief-setting" id="bfSetting"></p>
+    </header>
+    <div class="brief-grid">
+      <section class="brief-sec brief-objectives"><h3>Objectives</h3><ol class="objective-list" id="bfObjectives"></ol></section>
+      <section class="brief-sec"><h3>Your intelligence</h3><ul class="bullets" id="bfIntel"></ul><p class="brief-counsel" id="bfCounsel"></p></section>
+      <section class="brief-sec"><h3>Your allies <span class="tag" id="bfLinked"></span></h3><ul class="roster" id="bfAllies"></ul></section>
+      <section class="brief-sec"><h3>The enemy</h3><ul class="bullets bullets-crimson" id="bfEnemy"></ul><ul class="bullets bullets-quiet" id="bfLimits"></ul></section>
+    </div>
+    <div class="brief-controls" aria-label="Controls">
+      <span><kbd>Click</kbd> a glowing tile to move</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>Space</kbd> wait</span><span><kbd>E</kbd> scout</span><span><kbd>Right-drag</kbd> pan</span><span><kbd>H</kbd> field manual</span>
+    </div>
+    <div class="brief-new hidden" id="bfNewHint"><svg class="ico"><use href="#i-help"/></svg><span>First time here? The six short levels teach each rule in a minute or two.</span><button class="btn btn-sm" id="bfLearn">Learn to play first</button></div>
+    <footer class="brief-actions">
+      <button class="btn btn-ghost" id="bfBack">Back</button>
+      <button class="btn btn-primary btn-lg" id="bfBegin">Enter the formation</button>
+    </footer>
   </div>
 </section>
 
 <!-- ================= LEARN TO PLAY ================= -->
-<section id="levels" class="overlay levels hidden">
-  <div class="levels-panel panel">
-    <div class="kicker">Learn to play</div>
-    <h2 class="levels-title">Five short levels, one idea each</h2>
+<section id="levels" class="screen dim hidden">
+  <div class="sheet panel">
+    <div class="eyebrow">Learn to play</div>
+    <h2 class="display">Six short levels, one idea each</h2>
     <div class="level-grid" id="levelGrid"></div>
-    <div class="row" style="margin-top:14px"><button class="big" id="levelsBack">◀ Back to menu</button></div>
+    <div class="sheet-actions"><button class="btn btn-ghost" id="levelsBack">Back</button></div>
   </div>
 </section>
 
-<section id="levelCard" class="overlay levelcard hidden">
-  <div class="panel card-panel">
-    <div class="kicker" id="lcKicker"></div>
-    <h2 class="levels-title" id="lcTitle"></h2>
-    <p class="lc-lesson" id="lcLesson"></p>
-    <p class="lc-goal"><b>Goal:</b> <span id="lcGoal"></span></p>
-    <button class="big primary" id="lcStart">Start</button>
+<section id="levelCard" class="screen dim hidden">
+  <div class="card panel">
+    <div class="eyebrow" id="lcKicker"></div>
+    <h2 class="display" id="lcTitle"></h2>
+    <p class="lead" id="lcLesson"></p>
+    <p class="card-goal"><svg class="ico"><use href="#i-flag"/></svg><span id="lcGoal"></span></p>
+    <div class="card-actions"><button class="btn btn-primary btn-lg" id="lcStart">Start</button></div>
   </div>
 </section>
 
-<section id="levelResult" class="overlay levelcard hidden">
-  <div class="panel card-panel">
-    <div class="kicker" id="lrKicker"></div>
-    <h2 class="levels-title" id="lrTitle"></h2>
-    <p class="lc-lesson" id="lrText"></p>
-    <div class="lr-stars" id="lrStars"></div>
-    <div class="menu-buttons">
-      <button class="big primary" id="lrNext"></button>
-      <button class="big" id="lrTruth">See the real formation</button>
-      <button class="big" id="lrList">All levels</button>
+<section id="levelResult" class="screen dim hidden">
+  <div class="card panel">
+    <div class="eyebrow" id="lrKicker"></div>
+    <h2 class="display" id="lrTitle"></h2>
+    <div class="stars" id="lrStars" aria-label="Stars"></div>
+    <p class="lead" id="lrText"></p>
+    <div class="card-actions stack">
+      <button class="btn btn-primary btn-lg" id="lrNext"></button>
+      <button class="btn" id="lrTruth">See the real formation</button>
+      <button class="btn btn-ghost" id="lrList">All levels</button>
     </div>
   </div>
 </section>
 
 <!-- ================= INTRO CINEMATIC ================= -->
-<section id="intro" class="overlay cinematic hidden">
+<section id="intro" class="screen cinematic hidden">
   <div class="caption" id="caption"></div>
-  <button class="skip" id="skipIntro">Skip ▸</button>
+  <button class="btn btn-ghost skip" id="skipIntro">Skip</button>
 </section>
 
-<!-- ================= HUD ================= -->
+<!-- ================= COMMAND INTERFACE ================= -->
 <section id="hud" class="hud hidden">
-  <div class="panel hud-tl">
-    <div class="who"><span class="avatar gold">A</span><div><b>Abhimanyu</b><div class="muted small" id="roundLabel">Free play</div></div></div>
-    <div class="stat-row"><span>Resolve</span><b id="resolveLabel"></b></div>
-    <div class="meter" id="resolveBar"><div></div></div>
-    <div class="stat-row"><span>Day</span><b id="turnLabel"></b></div>
-    <div class="meter day" id="dayBar"><div></div></div>
-    <div class="where" id="whereLabel"></div>
-    <div class="chips" id="chips"></div>
-  </div>
-
-  <div class="hud-top">
-    <ol class="stepper" id="stepper">
+  <header class="cmdbar panel">
+    <div class="cmd-mission"><span class="cmd-title">The Chakravyuha</span><span class="cmd-sub" id="roundLabel">Free play</span></div>
+    <ol class="stepper" id="stepper" aria-label="Objectives">
       <li data-step="0">Break in</li><li data-step="1">Reach the core</li><li data-step="2">Escape</li>
     </ol>
-    <div class="hint" id="hint"></div>
-    <div class="drums hidden" id="drums"></div>
-    <div class="coach hidden" id="coach"><div class="coach-step" id="coachStep"></div><div id="coachText"></div></div>
-  </div>
+    <div class="cmd-right">
+      <div class="drums hidden" id="drums"></div>
+      <span class="cmd-turn" id="turnLabel"></span>
+      <div class="cmd-tools">
+        <button class="btn btn-icon" id="camBtn" title="Camera view (C)" aria-label="Camera view"><svg class="ico"><use href="#i-camera"/></svg><span class="btn-icon-label" id="camLabel">Tactical</span></button>
+        <button class="btn btn-icon" id="soundBtn" title="Sound" aria-label="Sound"><svg class="ico"><use href="#i-sound"/></svg></button>
+        <button class="btn btn-icon" id="helpBtn" title="Field manual (H)" aria-label="Field manual"><svg class="ico"><use href="#i-help"/></svg></button>
+        <button class="btn btn-icon" id="pauseBtn" title="Pause (Esc)" aria-label="Pause"><svg class="ico"><use href="#i-pause"/></svg></button>
+        <button class="btn btn-icon" id="leaveBtn" title="Leave this round" aria-label="Leave"><svg class="ico"><use href="#i-exit"/></svg></button>
+      </div>
+    </div>
+  </header>
+  <div class="hint" id="hint" role="status"></div>
+  <div class="coach hidden" id="coach"><div class="coach-step" id="coachStep"></div><div id="coachText"></div></div>
 
-  <div class="hud-tr">
-    <button class="icon" id="camBtn" title="Switch camera (C)">Close-up</button>
-    <button class="icon" id="soundBtn" title="Sound">Sound on</button>
-    <button class="icon" id="helpBtn" title="How to play (H)">?</button>
-    <button class="icon" id="leaveBtn" title="Leave this round">Leave</button>
-  </div>
+  <aside class="hud-left">
+    <div class="panel status">
+      <div class="who"><span class="crest crest-gold">A</span><div><b>Abhimanyu</b><div class="muted" id="whereLabel"></div></div></div>
+      <div class="stat"><span>Resolve</span><b id="resolveLabel"></b></div>
+      <div class="meter" id="resolveBar"><div></div></div>
+      <div class="stat"><span>Daylight</span><b id="dayLabel"></b></div>
+      <div class="meter meter-day" id="dayBar"><div></div></div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="panel intel" id="intelPanel">
+      <div class="panel-head"><h3>Intelligence</h3><span class="muted" id="intelNote"></span></div>
+      <div class="intel-bars" id="intelBars"></div>
+      <ul class="intel-list" id="intelList"></ul>
+    </div>
+    <details class="panel hud-legend" id="legend" open>
+      <summary><h3>Legend</h3></summary>
+      <div class="legend-grid">
+        <span><i class="lg lg-gate"></i>Gate</span><span><i class="lg lg-wall"></i>Wall in sight</span>
+        <span><i class="lg lg-stale"></i>Remembered</span><span><i class="lg lg-q">?</i>Never seen</span>
+        <span><i class="lg lg-mist"></i>Unexplored</span><span><i class="lg lg-zone"></i>Possible enemy</span>
+        <span><i class="lg lg-alert">!</i>Hunting you</span><span><i class="lg lg-k">K</i>Counsel</span>
+      </div>
+    </details>
+  </aside>
 
-  <div class="hud-rightcol">
-  <div class="panel hud-counsel hidden" id="counsel">
-    <div class="counsel-head"><span class="avatar krishna">K</span><div><b>Krishna's counsel</b><div class="muted small" id="counselSource"></div></div></div>
-    <div class="counsel-text" id="counselText"></div>
-    <div class="row"><button class="small" id="followAdvice" title="F">Follow <kbd>F</kbd></button><span class="muted small" id="counselNote"></span></div>
-  </div>
-
-  <div class="panel hud-right">
-    <h3>Your allies</h3>
-    <p class="muted small hidden" id="noComms">No signals: your allies act only on what they can see.</p>
-    <div id="allies"></div>
-  </div>
-  </div>
+  <aside class="hud-rightcol">
+    <div class="panel hud-counsel hidden" id="counsel">
+      <div class="counsel-head"><span class="crest crest-teal">K</span><div><b>Krishna's counsel</b><div class="muted" id="counselSource"></div></div></div>
+      <div class="counsel-text" id="counselText"></div>
+      <div class="counsel-actions"><button class="btn btn-sm btn-teal" id="followAdvice" title="Follow (F)"><svg class="ico"><use href="#i-follow"/></svg>Follow <kbd>F</kbd></button><span class="muted" id="counselNote"></span></div>
+    </div>
+    <div class="panel inspector hidden" id="inspector">
+      <div class="panel-head"><h3 id="inspKicker">Inspect</h3><button class="btn btn-icon btn-xs" id="inspClose" aria-label="Close"><svg class="ico"><use href="#i-cross"/></svg></button></div>
+      <div class="insp-title" id="inspTitle"></div>
+      <div class="insp-body" id="inspBody"></div>
+      <div class="insp-actions" id="inspActions"></div>
+    </div>
+    <div class="panel hud-right">
+      <div class="panel-head"><h3>Allies</h3><span class="muted" id="alliesNote"></span></div>
+      <p class="muted hidden" id="noComms">No signals. Your allies act only on what they can see.</p>
+      <div id="allies"></div>
+    </div>
+  </aside>
 
   <div class="hud-bottom">
-    <div class="actionbar">
-      <div class="movehelp"><b>Move</b> click a glowing tile<br><span class="muted">or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · drag to look · scroll to zoom</span></div>
-      <button class="act" id="waitBtn"><span class="act-k">Space</span><b>Wait</b><span class="act-d">Stay put one turn</span></button>
-      <button class="act" id="scoutBtn"><span class="act-k">E</span><b>Scout</b><span class="act-d">Spend a turn to see far</span></button>
+    <div class="action-note" id="actionNote" role="status"></div>
+    <div class="actionbar panel">
+      <div class="movehelp"><svg class="ico"><use href="#i-move"/></svg><div><b>Move</b><span>Click a glowing tile, or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span></div></div>
+      <button class="act" id="waitBtn"><svg class="ico"><use href="#i-wait"/></svg><span class="act-text"><b>Wait</b><span>Hold position one turn</span></span><kbd>Space</kbd></button>
+      <button class="act" id="scoutBtn"><svg class="ico"><use href="#i-scout"/></svg><span class="act-text"><b>Scout</b><span>Spend a turn to see far</span></span><kbd>E</kbd></button>
     </div>
   </div>
 
-  <div class="panel hud-legend" id="legend">
-    <div><i class="lg lg-gate"></i>Gate: a way through</div>
-    <div><i class="lg lg-wall"></i>Wall you can see now</div>
-    <div><i class="lg lg-stale"></i>Faded: remembered, may have moved</div>
-    <div><i class="lg lg-q">?</i>Never seen</div>
-    <div><i class="lg lg-alert">!</i>Sentinel hunting you</div>
-    <div class="muted">Hover any tile to see your route</div>
-  </div>
-
   <div class="panel hud-bl">
-    <div class="mini-head"><span>What you know</span><span class="muted small">map</span></div>
+    <div class="panel-head"><h3>Map</h3><span class="muted">what you know</span></div>
     <canvas id="minimap"></canvas>
   </div>
 
   <div class="replaybar panel hidden" id="replaybar">
-    <div class="rp-head"><b>Replay</b><span id="rpInfo" class="muted small"></span><span class="rp-verify" id="rpVerify"></span></div>
+    <div class="rp-head"><b>Replay</b><span id="rpInfo" class="muted"></span><span class="rp-verify" id="rpVerify"></span></div>
     <canvas id="rpTimeline" aria-label="Timeline of every turn, coloured by move quality"></canvas>
     <div class="rp-controls">
-      <button id="rpStart" title="Back to the start">⏮</button>
-      <button id="rpBack" title="Back one turn">◀</button>
-      <button id="rpPlay" class="primary-ish">▶ Play</button>
-      <button id="rpFwd" title="Forward one turn">▶|</button>
-      <button id="rpEnd" title="Jump to the end">⏭</button>
-      <select id="rpSpeed" title="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select>
-      <button id="rpTruth" title="Toggle between what the player knew and the truth">Show the truth</button>
+      <button class="btn btn-sm" id="rpStart" title="Back to the start">⏮</button>
+      <button class="btn btn-sm" id="rpBack" title="Back one turn">◀</button>
+      <button class="btn btn-sm btn-primary" id="rpPlay">▶ Play</button>
+      <button class="btn btn-sm" id="rpFwd" title="Forward one turn">▶|</button>
+      <button class="btn btn-sm" id="rpEnd" title="Jump to the end">⏭</button>
+      <select id="rpSpeed" class="input-sm" title="Playback speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select>
+      <button class="btn btn-sm" id="rpTruth" title="Toggle between what the player knew and the truth">Show the truth</button>
       <span class="rp-turn" id="rpTurn"></span>
     </div>
     <div class="rp-decision" id="rpDecision"></div>
   </div>
 
-  <div class="hud-br" id="feed"></div>
-  <div class="toast" id="toast"></div>
+  <div class="chronicle" id="feed" aria-label="Chronicle" role="log"></div>
+  <div class="toast" id="toast" role="status"></div>
 </section>
 <div class="tooltip" id="tooltip"></div>
 
-<!-- ================= DEBRIEF ================= -->
-<section id="debrief" class="overlay debrief hidden">
-  <div class="debrief-views">
-    <button id="viewBelief" class="active">What you knew</button>
-    <button id="viewTruth">The truth</button>
+<!-- ================= AFTER-ACTION REPORT ================= -->
+<section id="debrief" class="screen results hidden" aria-label="After-action report">
+  <div class="results-views panel" role="tablist" aria-label="Whose picture">
+    <span class="views-label">Show the field as</span>
+    <button class="btn btn-sm active" id="viewBelief">You knew it</button>
+    <button class="btn btn-sm" id="viewTruth">It truly was</button>
+    <button class="btn btn-sm" id="viewAllies">Your allies knew it</button>
+    <button class="btn btn-sm" id="viewKaurava">The Kauravas knew it</button>
+    <span class="views-note" id="viewNote"></span>
   </div>
-  <div class="panel debrief-panel">
-    <div class="outcome-title" id="outcomeTitle"></div>
-    <p id="outcomeText"></p>
+  <div class="results-panel panel">
+    <header class="results-head">
+      <div class="eyebrow">After-action report</div>
+      <h2 class="display outcome-title" id="outcomeTitle"></h2>
+      <p class="lead" id="outcomeText"></p>
+      <ol class="objective-list objective-list-results" id="rsObjectives"></ol>
+    </header>
     <div class="metrics" id="metrics"></div>
-    <h3>Your moves</h3>
-    <div class="qbar" id="qbar"></div>
-    <div class="qlegend">
-      <span><i class="q-optimal"></i>Best possible move</span>
-      <span><i class="q-info"></i>Right for what you knew, wrong in reality</span>
-      <span><i class="q-decision"></i>Off course even by what you knew</span>
-      <span><i class="q-forced"></i>Best route blocked</span>
-    </div>
-    <div class="lesson" id="lesson"></div>
-    <form id="feedbackForm">
+
+    <section class="rs-sec"><h3>Turn by turn</h3>
+      <div id="rsTimeline" class="rs-timeline"></div>
+      <div class="qlegend">
+        <span><i class="q-optimal"></i>Best possible move</span><span><i class="q-info"></i>Right for what you knew, wrong in truth</span>
+        <span><i class="q-decision"></i>Off course even by what you knew</span><span><i class="q-forced"></i>Blocked</span><span><i class="q-other"></i>Wait or scout</span>
+      </div>
+    </section>
+    <section class="rs-sec"><h3>Turning points</h3><ol class="moments" id="rsMoments"></ol></section>
+    <section class="rs-sec"><h3>Your decisions</h3>
+      <div class="qbar" id="qbar"></div>
+      <div class="lesson" id="lesson"></div>
+    </section>
+    <section class="rs-sec"><h3>What the others did</h3><ul class="agents" id="rsAgents"></ul></section>
+    <section class="rs-sec"><h3>What you knew, turn by turn</h3><div id="rsInfo" class="rs-info"></div></section>
+    <section class="rs-sec"><h3>Compared with your earlier rounds</h3><div id="rsCompare"></div></section>
+
+    <form id="feedbackForm" class="rs-sec">
       <h3>Reflection</h3>
       <div id="likert"></div>
       <label class="field" id="commentWrap">What would you do differently?<textarea id="fbComment" rows="2"></textarea></label>
-      <div class="row">
-        <button type="submit" class="primary" id="saveBtn">Save and continue</button>
-        <button type="button" id="exportOneBtn">Download this session</button>
+      <div class="results-actions">
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save and continue</button>
+        <button type="button" class="btn" id="rsReplay"><svg class="ico"><use href="#i-replay"/></svg>Replay this round</button>
+        <button type="button" class="btn btn-ghost" id="exportOneBtn"><svg class="ico"><use href="#i-down"/></svg>Download</button>
       </div>
-      <p class="muted small" id="saveNote"></p>
+      <p class="muted" id="saveNote"></p>
     </form>
   </div>
 </section>
 
 <!-- ================= MODALS ================= -->
-<section id="help" class="modal hidden" role="dialog" aria-label="How to play">
-  <div class="modal-card">
-    <button class="close" data-close>✕</button>
-    <h2>How to play</h2>
+<section id="help" class="modal hidden" role="dialog" aria-label="Field manual">
+  <div class="modal-card panel">
+    <button class="btn btn-icon close" data-close aria-label="Close"><svg class="ico"><use href="#i-cross"/></svg></button>
+    <div class="eyebrow">Field manual</div>
+    <h2 class="display">How the formation works</h2>
     <div class="help-grid">
-      <div><span class="sw sw-gold"></span><b>You, Abhimanyu</b><p>Gold ring. Each turn you move one tile, wait or scout.</p></div>
-      <div><span class="sw sw-gate"></span><b>Gates</b><p>Gaps in a wall, marked by torches and a banner. Walls can only be crossed at gates.</p></div>
-      <div><span class="sw sw-stale"></span><b>Faded walls and gates</b><p>Ones you saw earlier. The formation turns, so they may have moved since.</p></div>
-      <div><span class="sw sw-ghost"></span><b>Misty walls</b><p>Walls you have never seen. Anything could be there.</p></div>
-      <div><span class="sw sw-ally"></span><b>Allies (blue)</b><p>An ally next to you blocks sentinel pressure. An ally next to a sentinel pins it in place.</p></div>
-      <div><span class="sw sw-red"></span><b>Sentinels (red)</b><p>If one ends a turn next to you, you lose 1 resolve. You can force your way past one for 2 resolve.</p></div>
-      <div><span class="sw sw-purple"></span><b>Jayadratha (purple)</b><p>Once you break in, he seals the outer gates. A gate with an ally standing on it stays open.</p></div>
-      <div><span class="sw sw-red2"></span><b>Drona</b><p>Every 5 turns his drums sound and the walls turn, so the gates move.</p></div>
+      <div><span class="sw sw-gold"></span><b>You, Abhimanyu</b><p>Each turn: move one tile, wait, or scout. Click a unit or tile to inspect it.</p></div>
+      <div><span class="sw sw-gate"></span><b>Gates</b><p>Walls can only be crossed at gates: the gaps with torches and a glowing threshold.</p></div>
+      <div><span class="sw sw-stale"></span><b>Remembered walls</b><p>Faded walls and gates are memories. The formation turns, so they may have moved.</p></div>
+      <div><span class="sw sw-mist"></span><b>Unexplored ground</b><p>Mist covers ground you have never seen. A <b>?</b> marks the edge of what you know.</p></div>
+      <div><span class="sw sw-ally"></span><b>Allies</b><p>An ally beside you blocks one point of pressure. An ally beside a sentinel pins it.</p></div>
+      <div><span class="sw sw-red"></span><b>Sentinels</b><p>Ending a turn beside one costs 1 resolve. <b>!</b> means it is hunting you. Hatched ground shows where one you saw recently could be now.</p></div>
+      <div><span class="sw sw-purple"></span><b>Jayadratha</b><p>Once you break in he seals the outer gates. A gate with an ally on it cannot be sealed.</p></div>
+      <div><span class="sw sw-drum"></span><b>Drona's drums</b><p>Every few turns the walls turn and the gates move. The countdown is in the top bar.</p></div>
     </div>
-    <p class="muted small">Goal: reach the golden lotus at the centre, then get back out through an outer gate that is still open. Ghost columns mark where you last saw an enemy.</p>
+    <p class="muted">Goal: reach the golden lotus at the centre, then return to the field through an outer gate that is still open. <kbd>Right-drag</kbd> pans the camera, <kbd>C</kbd> changes the view.</p>
   </div>
 </section>
 
 <section id="pause" class="modal hidden" role="dialog" aria-label="Paused">
-  <div class="modal-card small-card">
-    <h2>Paused</h2>
-    <p class="muted small">Your thinking time is not counted while the game is paused.</p>
-    <div class="menu-buttons">
-      <button class="big primary" id="resumeBtn">Resume</button>
-      <button class="big" id="pauseHelpBtn">How to play</button>
-      <button class="big" id="pauseSettingsBtn">Graphics &amp; sound</button>
-      <button class="big" id="pauseLeaveBtn">Leave this round</button>
+  <div class="modal-card modal-sm panel">
+    <div class="eyebrow">Paused</div>
+    <h2 class="display">The battle holds</h2>
+    <p class="muted">Your thinking time is not counted while the game is paused.</p>
+    <div class="card-actions stack">
+      <button class="btn btn-primary btn-lg" id="resumeBtn">Resume</button>
+      <button class="btn" id="pauseHelpBtn">Field manual</button>
+      <button class="btn" id="pauseSettingsBtn">Graphics &amp; sound</button>
+      <button class="btn btn-ghost" id="pauseLeaveBtn">Leave this round</button>
     </div>
   </div>
 </section>
 
 <section id="settingsModal" class="modal hidden" role="dialog" aria-label="Graphics and sound">
-  <div class="modal-card small-card">
-    <button class="close" data-close>✕</button>
-    <h2>Graphics &amp; sound</h2>
+  <div class="modal-card modal-sm panel">
+    <button class="btn btn-icon close" data-close aria-label="Close"><svg class="ico"><use href="#i-cross"/></svg></button>
+    <div class="eyebrow">Settings</div>
+    <h2 class="display">Graphics &amp; sound</h2>
     <div class="set-row"><span class="set-label">Graphics</span>
       <div class="seg"><label><input type="radio" name="quality" value="high"><span>High</span></label><label><input type="radio" name="quality" value="low"><span>Fast</span></label></div>
     </div>
@@ -295,24 +381,25 @@
       <div class="seg"><label><input type="radio" name="motion" value="full"><span>Full</span></label><label><input type="radio" name="motion" value="reduced"><span>Reduced</span></label></div>
     </div>
     <p class="set-help">Reduced turns off camera shake.</p>
-    <div class="set-row"><span class="set-label">Sound</span><button class="small" id="settingsSound"></button></div>
-    <p class="muted small" id="fpsLabel"></p>
+    <div class="set-row"><span class="set-label">Sound</span><button class="btn btn-sm" id="settingsSound"></button></div>
+    <p class="muted" id="fpsLabel"></p>
   </div>
 </section>
 
 <section id="about" class="modal hidden" role="dialog" aria-label="About the project">
-  <div class="modal-card">
-    <button class="close" data-close>✕</button>
-    <h2>About this project</h2>
+  <div class="modal-card panel">
+    <button class="btn btn-icon close" data-close aria-label="Close"><svg class="ico"><use href="#i-cross"/></svg></button>
+    <div class="eyebrow">About</div>
+    <h2 class="display">From the epic to the evidence</h2>
     <p><b>Kurukshetra</b> is a Mini Research &amp; Innovation Project, B.Tech II Year, Amrita Vishwa Vidyapeetham, Chennai. Theme: <i>Strategic Lessons from the Mahabharata</i>.</p>
     <ol class="chain-list">
       <li><b>Mahabharata.</b> Abhimanyu breaks into the Chakravyuha. He knows only half of what he needs, his allies are held back at the breach, and the formation keeps turning.</li>
       <li><b>Strategic insight.</b> Decisions made with partial, changing information, by people who each know something different.</li>
       <li><b>Contemporary problem.</b> Teams act on incomplete or stale information, and coordination failures turn good individual choices into bad outcomes.</li>
-      <li><b>The game.</b> A human and autonomous agents each hold a different slice of the truth. The amount of information and the level of coordination are experimental conditions.</li>
+      <li><b>The game.</b> A human and autonomous agents each hold a different slice of the truth. Information and coordination are experimental conditions.</li>
       <li><b>Evidence.</b> Every move is logged against what you <i>believed</i> and what was <i>true</i>, so information errors and decision errors can be told apart.</li>
     </ol>
-    <p class="muted small">Sessions are stored only in this browser. Export them from the Analysis dashboard.</p>
+    <p class="muted">Sessions are stored only in this browser. Export them from the research dashboard.</p>
   </div>
 </section>
 
@@ -333,6 +420,8 @@
 <script src="js/bots.js"></script>
 <script src="js/logger.js"></script>
 <script src="js/levels.js"></script>
+<script src="js/views.js"></script>
+<script src="js/insights.js"></script>
 <script src="js/render.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/characters.js"></script>

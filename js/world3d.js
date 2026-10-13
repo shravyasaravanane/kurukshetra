@@ -115,7 +115,8 @@
     sunDisc.position.set(-260, 90, -240); sunDisc.scale.set(120, 120, 1);
     scene.add(sunDisc);
 
-    scene.add(new T.HemisphereLight(0xffe4c4, 0x3a2a1c, 0.55));
+    const hemi = new T.HemisphereLight(0xffe4c4, 0x3a2a1c, 0.55);
+    scene.add(hemi);
     const sun = new T.DirectionalLight(0xffd6a0, 1.3);
     sun.position.set(-50, 70, -45);
     sun.castShadow = true;
@@ -141,12 +142,16 @@
     const rIn = (r) => (r === 0 ? 0 : RC + (r - 1) * RW);
     const rOut = (r) => (r === 0 ? RC : RC + r * RW);
     const angleOf = (s) => -Math.PI / 2 + s * segA;
+    // Terraces: the formation rises ring by ring toward a raised core; the field is level ground.
+    const TERRACE = 0.22;
+    const ringH = (r) => (!geom ? 0 : r === 0 ? TERRACE * (geom.R + 1) + 0.12 : r > geom.R ? 0 : TERRACE * (geom.R + 1 - r));
     function cellPos(cell, out) {
       out = out || new T.Vector3();
-      if (cell === 0 || cell == null) return out.set(0, 0, 0);
+      if (cell == null) return out.set(0, 0, 0);
+      if (cell === 0) return out.set(0, ringH(0), 0);
       const r = geom.ringOf(cell), a = angleOf(geom.segOf(cell));
       const rad = (rIn(r) + rOut(r)) / 2;
-      return out.set(Math.cos(a) * rad, 0, Math.sin(a) * rad);
+      return out.set(Math.cos(a) * rad, ringH(r), Math.sin(a) * rad);
     }
     function sectorGeom(r1, r2) { // centred on segment 0
       const a1 = -segA / 2, a2 = segA / 2;
@@ -187,6 +192,21 @@
     let floors = [], walls = [], floorPick = [], coreMesh = null, highlightPool = [], beacon = null, lotus = null, exitBeacons = [];
     let pathDots = [];
     let troopBody = null, troopHead = null;
+    let mist = [];
+    const MIST_MAT = new T.ShaderMaterial({
+      transparent: true, depthWrite: false, side: T.DoubleSide, fog: false,
+      uniforms: { time: { value: 0 }, opacity: { value: 0 }, color: { value: new T.Color('#2a2633') } },
+      vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+      fragmentShader: [
+        'uniform float time; uniform float opacity; uniform vec3 color; varying vec3 vW;',
+        'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }',
+        'float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);',
+        '  return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }',
+        'void main(){ vec2 p = vW.xz * 0.18 + vec2(time*0.05, time*0.03);',
+        '  float m = n(p) * 0.6 + n(p*2.3 - time*0.04) * 0.4;',
+        '  gl_FragColor = vec4(color, opacity * (0.55 + 0.45 * m)); }',
+      ].join(String.fromCharCode(10)),
+    });
     let ringLabels = [], qMarks = [], staleTags = [];
     const texCache = new Map();
     function textTexture(text, opts) {
@@ -282,7 +302,7 @@
           const cell = geom.cellId(r, s);
           const m = new T.Mesh(ringGeos[r], new T.MeshStandardMaterial({ color: FLOOR.fog.clone(), roughness: 0.95 }));
           m.rotation.y = -angleOf(s);
-          m.position.y = 0.01;
+          m.position.y = ringH(r) + 0.01;
           m.receiveShadow = true;
           m.userData = { cell, field: r === geom.FIELD, target: FLOOR.fog.clone() };
           formation.add(m);
@@ -292,7 +312,7 @@
       }
       // core
       coreMesh = new T.Mesh(new T.CircleGeometry(RC - 0.05, 40), new T.MeshStandardMaterial({ color: 0xe9c46a, emissive: 0x8a5a12, emissiveIntensity: 0.35, roughness: 0.5 }));
-      coreMesh.rotation.x = -Math.PI / 2; coreMesh.position.y = 0.02;
+      coreMesh.rotation.x = -Math.PI / 2; coreMesh.position.y = ringH(0) + 0.02;
       coreMesh.userData = { cell: 0, target: new T.Color(0xe9c46a) };
       formation.add(coreMesh);
       floors[0] = coreMesh;
@@ -314,10 +334,33 @@
       const bud = new T.Mesh(new T.SphereGeometry(0.6, 16, 12), M.gold);
       bud.position.y = 0.8;
       lotus.add(bud);
-      lotus.position.y = 0.1;
+      lotus.position.y = ringH(0) + 0.1;
       formation.add(lotus);
+      // Stone risers between terraces give the formation real depth.
+      const riserMat = new T.MeshStandardMaterial({ map: stoneTex, color: 0x5b4636, roughness: 0.9 });
+      for (let r = 0; r <= geom.R; r++) {
+        const hi = ringH(r), lo = ringH(r + 1), h = hi - lo;
+        if (h <= 0.001) continue;
+        const riser = new T.Mesh(new T.CylinderGeometry(rOut(r), rOut(r), h, 72, 1, true), riserMat);
+        riser.position.y = lo + h / 2;
+        riser.receiveShadow = true;
+        formation.add(riser);
+      }
+      // Drifting mist over ground the player has never seen (thin haze over remembered ground).
+      mist = [];
+      const mistGeos = [];
+      for (let r = 1; r <= geom.FIELD; r++) mistGeos[r] = sectorGeom(rIn(r) + 0.05, rOut(r) - 0.05);
+      for (let r = 1; r <= geom.FIELD; r++) for (let s2 = 0; s2 < geom.S; s2++) {
+        const mm = new T.Mesh(mistGeos[r], MIST_MAT.clone());
+        mm.rotation.y = -angleOf(s2);
+        mm.position.y = ringH(r) + 0.6;
+        mm.renderOrder = 3;
+        mm.userData = { cell: geom.cellId(r, s2), target: 0 };
+        formation.add(mm);
+        mist[geom.cellId(r, s2)] = mm;
+      }
       const coreLight = new T.PointLight(0xffc35a, 1.4, 22);
-      coreLight.position.set(0, 4, 0);
+      coreLight.position.set(0, ringH(0) + 4, 0);
       formation.add(coreLight);
 
       // walls
@@ -331,7 +374,7 @@
           const solid = new T.Mesh(wg, outer ? M.stoneOuter : M.stone);
           solid.castShadow = true; solid.receiveShadow = true;
           const ghost = new T.Mesh(wg, M.ghost);
-          for (const m of [solid, ghost]) { m.rotation.y = -angleOf(s); m.visible = false; m.scale.y = 0.001; formation.add(m); }
+          for (const m of [solid, ghost]) { m.rotation.y = -angleOf(s); m.position.y = ringH(k + 1); m.visible = false; m.scale.y = 0.001; formation.add(m); }
           walls[k][s] = { k, s, R, h, outer, solid, ghost, gate: null, state: 'none', stale: false };
         }
       }
@@ -400,16 +443,16 @@
     }
 
     function setTroops(w, sc) {
-      const R = w.R - 0.75;
+      const R = w.R - 0.75, baseY = ringH(w.k);
       for (let i = 0; i < PER; i++) {
         const a = angleOf(w.s) + (i - 1) * segA * 0.3;
         const yaw = Math.atan2(Math.cos(a), Math.sin(a));
-        dummy.position.set(Math.cos(a) * R, 0.72 * sc, Math.sin(a) * R);
+        dummy.position.set(Math.cos(a) * R, baseY + 0.72 * sc, Math.sin(a) * R);
         dummy.rotation.set(0, yaw, 0);
         dummy.scale.set(sc > 0.01 ? 1 : 0, Math.max(0.001, sc), sc > 0.01 ? 1 : 0);
         dummy.updateMatrix();
         troopBody.setMatrixAt(w.troopBase + i, dummy.matrix);
-        dummy.position.y = 1.65 * sc;
+        dummy.position.y = baseY + 1.65 * sc;
         dummy.updateMatrix();
         troopHead.setMatrixAt(w.troopBase + i, dummy.matrix);
       }
@@ -428,6 +471,7 @@
       if (!w.gate) {
         w.gate = makeGate(w.R, w.h, w.outer);
         w.gate.rotation.y = -angleOf(w.s);
+        w.gate.position.y = ringH(w.k + 1);
         w.gate.visible = false;
         w.gate.scale.y = 0.001;
         formation.add(w.gate);
@@ -574,7 +618,7 @@
       c.cell = cell;
       tween(0.48, (k) => {
         const rad = lerp(fromR, toR, k), a = startA + dA * k;
-        c.root.position.set(Math.cos(a) * rad, 0, Math.sin(a) * rad);
+        c.root.position.set(Math.cos(a) * rad, lerp(from.y, to.y, k), Math.sin(a) * rad);
       });
     }
 
@@ -595,6 +639,7 @@
         if (cell === 0) { f.userData.target.set(vis ? 0xf2cf72 : seen ? 0x9a7a3a : 0x5a4720); continue; }
         const fld = f.userData.field;
         f.userData.target.copy(vis ? (fld ? FLOOR.field : FLOOR.lit) : seen ? (fld ? FLOOR.fieldSeen : FLOOR.seen) : (fld ? FLOOR.fieldFog : FLOOR.fog));
+        if (mist[cell]) mist[cell].userData.target = vis ? 0 : seen ? 0.22 : 0.7;
       }
       // walls
       for (let k = 0; k <= geom.R; k++) {
@@ -621,7 +666,7 @@
             if (g === -1 && near && qi < 40) {
               if (!qMarks[qi]) { qMarks[qi] = marker('?', { w: 128, h: 128, font: '800 92px system-ui, sans-serif', fg: '#dbe8ff', bg: 'rgba(30,45,70,0.85)', stroke: '#9fb6d0' }, [1.1, 1.1]); formation.add(qMarks[qi]); }
               qMarks[qi].visible = true;
-              qMarks[qi].position.set(Math.cos(a) * R, 1.9, Math.sin(a) * R);
+              qMarks[qi].position.set(Math.cos(a) * R, ringH(k + 1) + 1.9, Math.sin(a) * R);
               qi++;
             } else if (g === 1 && b.seen[k][s2] >= 0 && b.seen[k][s2] < turn && Math.abs(k - pr) <= 2 && ti < 12) {
               const age = turn - b.seen[k][s2];
@@ -629,7 +674,7 @@
               if (!staleTags[ti]) { staleTags[ti] = marker(text, { w: 512, h: 112, font: '700 54px system-ui, sans-serif', fg: '#f1e8d6', bg: 'rgba(60,55,50,0.85)', stroke: '#a99d89' }, [3.6, 0.79]); formation.add(staleTags[ti]); }
               staleTags[ti].material.map = textTexture(text, { w: 512, h: 112, font: '700 54px system-ui, sans-serif', fg: '#f1e8d6', bg: 'rgba(60,55,50,0.85)', stroke: '#a99d89' });
               staleTags[ti].visible = true;
-              staleTags[ti].position.set(Math.cos(a) * R, 3.6, Math.sin(a) * R);
+              staleTags[ti].position.set(Math.cos(a) * R, ringH(k + 1) + 3.6, Math.sin(a) * R);
               ti++;
             }
           }
@@ -704,6 +749,8 @@
           h.ring = r;
         }
         h.mesh.rotation.y = m.to === 0 ? 0 : -angleOf(geom.segOf(m.to));
+        h.mesh.position.y = ringH(r) + 0.09;
+        h.baseY = ringH(r);
         h.mesh.material.color.set(m.breakthrough ? 0xff2a1a : 0xff8c00);
         h.arrow.material.color.set(m.breakthrough ? 0xff3b2b : 0xffb000);
         h.mesh.visible = true;
@@ -739,6 +786,128 @@
       cellPos(cell, adviceMark.position);
     }
 
+    // Possible positions of sentinels seen recently (inferred from the player's own sightings).
+    const HATCH = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.strokeStyle = 'rgba(200,70,60,0.9)'; g.lineWidth = 6;
+      for (let i = -64; i < 128; i += 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 64, 64); g.stroke(); }
+      const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(3, 3);
+      return t;
+    })();
+    let threatMeshes = [];
+    function setThreats(zones) {
+      for (const m of threatMeshes) formation.remove(m);
+      threatMeshes = [];
+      if (!zones || !geom) return;
+      const cells = new Map();
+      for (const z of zones) for (const c of z.cells) cells.set(c, Math.max(cells.get(c) || 0, 1 / z.age));
+      for (const [c, w] of cells) {
+        if (c === 0) continue;
+        const r = geom.ringOf(c);
+        const m = new T.Mesh(sectorGeom(rIn(r) + 0.15, rOut(r) - 0.15), new T.MeshBasicMaterial({ map: HATCH, transparent: true, opacity: 0.25 + 0.35 * w, depthWrite: false, toneMapped: false }));
+        m.rotation.y = -angleOf(geom.segOf(c));
+        m.position.y = ringH(r) + 0.66; // above the mist, so a possible enemy reads even on unexplored ground
+        m.renderOrder = 4;
+        formation.add(m);
+        threatMeshes.push(m);
+      }
+    }
+
+    // Selection: a gold ring under a unit, or a gold outline on a tile.
+    let selection = null, selRing = null, selTile = null;
+    function setSelection(sel) {
+      selection = sel;
+      if (!selRing) {
+        selRing = new T.Mesh(new T.RingGeometry(0.95, 1.12, 48), new T.MeshBasicMaterial({ color: 0xe2c07a, transparent: true, opacity: 0.95, side: T.DoubleSide, depthWrite: false, toneMapped: false }));
+        selRing.rotation.x = -Math.PI / 2; selRing.renderOrder = 4;
+        formation.add(selRing);
+      }
+      if (selTile) { formation.remove(selTile); selTile = null; }
+      selRing.visible = !!(sel && sel.type === 'unit');
+      if (sel && sel.type === 'cell' && geom) {
+        const c = sel.cell;
+        const g = c === 0 ? (() => { const gg = new T.RingGeometry(RC - 0.5, RC - 0.2, 48); gg.rotateX(-Math.PI / 2); return gg; })()
+          : (() => { const r = geom.ringOf(c); return sectorGeom(rIn(r) + 0.12, rOut(r) - 0.12); })();
+        if (c === 0) selTile = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0xe2c07a, transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false, side: T.DoubleSide }));
+        else {
+          // an ivory outline on all four edges with a faint fill: distinct from the amber "you can move here" tiles
+          selTile = new T.Group();
+          selTile.add(new T.Mesh(g, new T.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: 0.12, depthWrite: false, toneMapped: false, side: T.DoubleSide })));
+          const r = geom.ringOf(c), edge = new T.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: 1, depthWrite: false, depthTest: false, toneMapped: false, side: T.DoubleSide });
+          const rim = new T.Mesh(sectorGeom(rOut(r) - 0.42, rOut(r) - 0.12), edge);
+          const rim2 = new T.Mesh(sectorGeom(rIn(r) + 0.12, rIn(r) + 0.42), edge);
+          rim.position.y = rim2.position.y = 0.01;
+          selTile.add(rim, rim2);
+          const rm = (rIn(r) + rOut(r)) / 2, len = rOut(r) - rIn(r) - 0.24;
+          for (const side of [-1, 1]) {
+            const th = side * (segA / 2 - 0.3 / rm);
+            const sg = new T.PlaneGeometry(len, 0.3); sg.rotateX(-Math.PI / 2);
+            const strip = new T.Mesh(sg, edge);
+            strip.rotation.y = th;
+            strip.position.set(rm * Math.cos(th), 0.01, -rm * Math.sin(th));
+            selTile.add(strip);
+          }
+        }
+        if (c !== 0) selTile.rotation.y = -angleOf(geom.segOf(c));
+        selTile.position.y = (c === 0 ? ringH(0) : ringH(geom.ringOf(c))) + 0.7;
+        selTile.renderOrder = 5;
+        selTile.traverse((o) => { o.renderOrder = 5; });
+        formation.add(selTile);
+      }
+    }
+
+    // Allies' reported routes (only passed in when allies are linked).
+    let planLines = [];
+    function setPlans(plans) {
+      for (const l of planLines) { formation.remove(l); l.geometry.dispose(); }
+      planLines = [];
+      if (!plans) return;
+      for (const p of plans) {
+        const ch = chars.get(p.id);
+        if (!ch || !p.path || !p.path.length) continue;
+        const pts = [ch.root.position.clone()].concat(p.path.map((c) => cellPos(c)));
+        for (const v of pts) v.y += 0.35;
+        const g = new T.BufferGeometry().setFromPoints(pts);
+        const line = new T.Line(g, new T.LineDashedMaterial({ color: 0x6d9fd6, dashSize: 0.6, gapSize: 0.45, transparent: true, opacity: 0.85, toneMapped: false }));
+        line.computeLineDistances();
+        line.renderOrder = 3;
+        formation.add(line);
+        planLines.push(line);
+      }
+    }
+
+    // A gate being sealed this turn (observed or reported).
+    let sealMark = null;
+    function setSealing(info) {
+      if (sealMark) { formation.remove(sealMark); sealMark = null; }
+      if (!info || !geom) return;
+      const g = new T.Group();
+      const ring = new T.Mesh(new T.RingGeometry(1.3, 1.6, 48, 1, 0, Math.PI * 2), new T.MeshBasicMaterial({ color: 0xb07be0, transparent: true, opacity: 0.9, side: T.DoubleSide, depthWrite: false, toneMapped: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.14;
+      const tag = marker(info.reported ? 'Sealing (reported)' : 'Sealing next turn', { w: 512, h: 112, font: '700 50px Inter, system-ui, sans-serif', fg: '#f3e9ff', bg: 'rgba(60,30,90,0.92)', stroke: '#b07be0' }, [3.6, 0.79]);
+      tag.position.y = 3.4;
+      g.add(ring, tag);
+      g.userData = { ring };
+      cellPos(geom.cellId(geom.R, info.seg), g.position);
+      formation.add(g);
+      sealMark = g;
+    }
+
+    // Time of day: the sun sinks toward the horizon as the turn limit approaches.
+    const SKY = { top: new T.Color('#2b3f6b'), mid: new T.Color('#e69a5c'), duskTop: new T.Color('#1a1830'), duskMid: new T.Color('#b4553a') };
+    function setDay(f) {
+      f = Math.max(0, Math.min(1, f || 0));
+      const elev = 70 - 52 * f;
+      sun.position.set(-50 - 20 * f, elev, -45 + 10 * f);
+      sun.color.setHSL(0.09 - 0.04 * f, 0.75, 0.78 - 0.18 * f);
+      sun.intensity = 1.3 - 0.45 * f;
+      hemi.intensity = 0.55 - 0.18 * f;
+      sky.material.uniforms.top.value.copy(SKY.top).lerp(SKY.duskTop, f);
+      sky.material.uniforms.mid.value.copy(SKY.mid).lerp(SKY.duskMid, f);
+      sunDisc.position.set(-260, 90 - 70 * f, -240);
+    }
+
     function showPath(cells, color) {
       for (const d of pathDots) formation.remove(d);
       pathDots = [];
@@ -746,7 +915,7 @@
       cells.forEach((c, i) => {
         const d = new T.Mesh(new T.SphereGeometry(0.22, 10, 8), new T.MeshBasicMaterial({ color: color || 0x29c8ff, transparent: true, opacity: 0.9, toneMapped: false }));
         cellPos(c, d.position);
-        d.position.y = 0.4;
+        d.position.y += 0.4;
         d.userData.i = i;
         formation.add(d);
         pathDots.push(d);
@@ -806,17 +975,17 @@
           for (const id of ctx.pressingSentinels || ctx.adjacentSentinels || []) { const c = chars.get(id); if (c && c.shown) { c.push(); beam(c.root.position, ppos, 0xff3b2b); } }
           K.Audio.play('thud');
           break;
-        case 'covered': dome(ppos, 0x4f95e8); for (const id of ctx.coverAllies || []) { const c = chars.get(id); if (c && c.shown) beam(c.root.position, ppos, 0x4f95e8); } K.Audio.play('shield'); break;
+        case 'covered': floatText(ppos, 'Covered', '#6d9fd6'); dome(ppos, 0x4f95e8); for (const id of ctx.coverAllies || []) { const c = chars.get(id); if (c && c.shown) beam(c.root.position, ppos, 0x4f95e8); } K.Audio.play('shield'); break;
         case 'breakthrough': burst(ppos, 0xff5a3d, 40); pc.flash('#ff2a1a'); floatText(ppos, `-${e.cost} resolve`, '#ff6a5d'); shake(0.4); K.Audio.play('thud'); break;
         case 'rotation': shake(0.8); K.Audio.play('drum'); if (drona) { drona.anim.raise = 1; tween(2.2, (k) => { drona.anim.raise = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3; }); }
           for (let r = 1; r < geom.FIELD; r += 2) shockwave(new T.Vector3(0, 0, 0), 0xffd9a0, rOut(r) / 1.2);
           break;
         case 'sealing': if (ctx.gatekeeperSeen) { const g = chars.get('jayadratha'); shockwave(g.root.position, 0xa777e8, 2.5); g.flash('#a777e8'); } break;
-        case 'sealed': if (ctx.sealPerceived) { K.Audio.play('seal'); shake(0.3); const g = cellPos(geom.cellId(geom.R, e.seg)); burst(g, 0xa777e8, 50); } break;
+        case 'sealed': if (ctx.sealPerceived) { K.Audio.play('seal'); shake(0.3); const g = cellPos(geom.cellId(geom.R, e.seg)); burst(g, 0xa777e8, 50); floatText(g, 'Gate sealed', '#b07be0'); } break;
         case 'breach': K.Audio.play('conch'); shockwave(ppos, 0xffc95a, 5); break;
         case 'core': K.Audio.play('chime'); burst(new T.Vector3(0, 0, 0), 0xffd36a, 120); pc.cheer(2.5); shockwave(new T.Vector3(), 0xffd36a, 8); break;
         case 'escaped': K.Audio.play('win'); burst(ppos, 0x6bff9a, 120); pc.cheer(4); break;
-        case 'signal': { const c = chars.get(e.allyId); if (c && c.shown) { shockwave(c.root.position, 0x4f95e8, 2); c.flash('#4f95e8'); } K.Audio.play('order'); break; }
+        case 'signal': { const c = chars.get(e.allyId); if (c && c.shown) { shockwave(c.root.position, 0x4f95e8, 2); c.flash('#4f95e8'); floatText(c.root.position, 'Order received', '#6d9fd6'); } K.Audio.play('order'); break; }
         case 'swap': break;
         default: break;
       }
@@ -831,7 +1000,7 @@
     function stepSound() { K.Audio.play('step'); }
 
     // ---------------- camera ----------------
-    const cam = { mode: 'menu', yaw: 0, pitch: 0.75, dist: 24, target: new T.Vector3(), userYaw: 0, userPitch: 0, userDist: 0, t: 0 };
+    const cam = { mode: 'menu', yaw: 0, pitch: 0.75, dist: 24, target: new T.Vector3(), userYaw: 0, userPitch: 0, userDist: 0, t: 0, pan: new T.Vector3() };
     const cur = { yaw: 0, pitch: 0.7, dist: 70, target: new T.Vector3() };
     function setCameraMode(m) { cam.mode = m; if (m === 'follow') { cam.userYaw = 0; } }
     function playerYaw() {
@@ -843,11 +1012,15 @@
     function desired() {
       if (cam.mode === 'menu' || cam.mode === 'cinematic') return { yaw: cam.t * 0.06 + 1.2, pitch: 0.45, dist: 72, target: new T.Vector3(0, 2, 0) };
       if (cam.mode === 'overview') return { yaw: cam.userYaw + playerYaw(), pitch: Math.min(1.45, 1.2 + cam.userPitch), dist: Math.max(40, 86 + cam.userDist), target: (() => { const pc = chars.get('player'); return pc ? new T.Vector3(pc.root.position.x * 0.3, 0, pc.root.position.z * 0.3) : new T.Vector3(); })() };
+      if (cam.mode === 'top') {
+        const fr = geom ? rOut(geom.FIELD) : 40;
+        return { yaw: cam.userYaw + playerYaw(), pitch: 1.47, dist: Math.max(30, fr * 2.35 + cam.userDist), target: cam.pan.clone() };
+      }
       if (cam.mode === 'tactical') {
         const pc = chars.get('player');
         const p = pc ? pc.root.position : new T.Vector3();
         const fr = geom ? rOut(geom.FIELD) : 40;
-        return { yaw: cam.userYaw + playerYaw(), pitch: Math.min(1.45, Math.max(0.5, 1.02 + cam.userPitch)), dist: Math.max(22, fr * 1.95 + cam.userDist), target: new T.Vector3(p.x * 0.55, 0, p.z * 0.55) };
+        return { yaw: cam.userYaw + playerYaw(), pitch: Math.min(1.45, Math.max(0.5, 1.02 + cam.userPitch)), dist: Math.max(22, fr * 1.95 + cam.userDist), target: new T.Vector3(p.x * 0.55 + cam.pan.x, 0, p.z * 0.55 + cam.pan.z) };
       }
       if (cam.mode === 'debrief') return { yaw: cam.t * 0.05, pitch: 1.1, dist: 84, target: new T.Vector3(-8, 0, 0) };
       const p = chars.get('player') ? chars.get('player').root.position : new T.Vector3();
@@ -892,13 +1065,24 @@
       const hf = ray.intersectObjects(floorPick, false)[0];
       return { charId: hc ? hc.object.userData.charId : null, cell: hf ? hf.object.userData.cell : null };
     }
-    canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, moved: 0, button: e.button }; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, moved: 0, button: e.button, pan: e.button === 2 || e.button === 1 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('pointermove', (e) => {
       if (drag) {
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         drag.moved += Math.abs(dx) + Math.abs(dy);
         drag.x = e.clientX; drag.y = e.clientY;
-        if (drag.moved > 6 && (cam.mode === 'follow' || cam.mode === 'overview' || cam.mode === 'tactical')) {
+        if (drag.moved > 6 && drag.pan && ['tactical', 'top', 'follow'].includes(cam.mode)) {
+          // Pan across the ground plane, relative to where the camera is looking.
+          const fwd = new T.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+          const right = new T.Vector3().crossVectors(fwd, new T.Vector3(0, 1, 0));
+          const k = cur.dist * 0.0016;
+          cam.pan.addScaledVector(right, -dx * k).addScaledVector(fwd, dy * k);
+          const lim = geom ? rOut(geom.FIELD) : 40;
+          if (cam.pan.length() > lim) cam.pan.setLength(lim);
+          return;
+        }
+        if (drag.moved > 6 && (cam.mode === 'follow' || cam.mode === 'overview' || cam.mode === 'tactical' || cam.mode === 'top')) {
           cam.userYaw -= dx * 0.006;
           cam.userPitch = Math.max(-0.5, Math.min(0.7, cam.userPitch + dy * 0.004));
         }
@@ -976,9 +1160,23 @@
           if (!h.mesh.visible) continue;
           const hov = h.cell === hoverCell;
           h.mesh.material.opacity = (hov ? 0.9 : 0.62) + Math.sin(t * 4) * 0.12;
-          h.arrow.position.y = 2.6 + Math.sin(t * 3 + (h.cell || 0)) * 0.3 + (hov ? 0.5 : 0);
+          h.arrow.position.y = (h.baseY || 0) + 2.6 + Math.sin(t * 3 + (h.cell || 0)) * 0.3 + (hov ? 0.5 : 0);
           h.arrow.rotation.y = t * 2;
         }
+        for (let c = 1; c < mist.length; c++) {
+          const mm = mist[c];
+          if (!mm) continue;
+          const u = mm.material.uniforms;
+          u.time.value = t;
+          u.opacity.value += (mm.userData.target - u.opacity.value) * Math.min(1, rawDt * 3);
+          mm.visible = u.opacity.value > 0.01;
+        }
+        if (selRing && selRing.visible && selection && selection.type === 'unit') {
+          const ch = chars.get(selection.id);
+          if (ch && ch.root.visible) { selRing.position.set(ch.root.position.x, ch.root.position.y + 0.08, ch.root.position.z); selRing.scale.setScalar(1 + Math.sin(t * 4) * 0.05); }
+          else selRing.visible = false;
+        }
+        if (sealMark) sealMark.userData.ring.scale.setScalar(1 + Math.sin(t * 6) * 0.08);
         if (adviceMark && adviceMark.visible) { adviceMark.userData.k.position.y = 4.2 + Math.sin(t * 2.5) * 0.25; adviceMark.userData.ring.scale.setScalar(1 + Math.sin(t * 3) * 0.08); }
         for (const d of pathDots) d.material.opacity = 0.35 + 0.55 * Math.max(0, Math.sin(t * 4 - d.userData.i * 0.6));
         for (const w of walls.flat()) if (w.gate && w.gate.visible) for (const f of w.gate.userData.flames) { const s = 1.4 + Math.sin(t * 13 + w.s * 3 + w.k) * 0.15 + Math.random() * 0.1; f.scale.set(s, s * 1.4, 1); }
@@ -988,7 +1186,7 @@
           m.visible = showLabels;
           if (!showLabels) continue;
           const r = m.userData.r, rad = (rIn(r) + rOut(r)) / 2, a = psi + segA * 0.5;
-          m.position.set(Math.cos(a) * rad, 0.08, Math.sin(a) * rad);
+          m.position.set(Math.cos(a) * rad, ringH(r) + 0.08, Math.sin(a) * rad);
           m.rotation.set(-Math.PI / 2, Math.PI / 2 - psi, 0, 'YXZ');
         }
         if (lotus) { lotus.rotation.y = t * 0.3; lotus.position.y = 0.1 + Math.sin(t * 1.5) * 0.08; }
@@ -1013,7 +1211,17 @@
       load(game) { buildFormation(game.state.geom); buildCharacters(game.state); },
       sync, setLegal, showPath, setAdvice, playEvent, scoutPulse, stepSound, project,
       setCameraMode, get cameraMode() { return cam.mode; },
-      resetCamera() { cam.userYaw = 0; cam.userPitch = 0; cam.userDist = 0; },
+      resetCamera() { cam.userYaw = 0; cam.userPitch = 0; cam.userDist = 0; cam.pan.set(0, 0, 0); },
+      // Centre the camera on a tile or unit without changing the camera mode.
+      focusOn(cell) {
+        if (cell == null || !geom) return;
+        const target = cellPos(cell);
+        const pc = chars.get('player'), p = pc ? pc.root.position : new T.Vector3();
+        if (cam.mode === 'top') cam.pan.set(target.x, 0, target.z);
+        else cam.pan.set(target.x - p.x * 0.55, 0, target.z - p.z * 0.55);
+      },
+      charCell(id) { const c = chars.get(id); return c && c.root.visible ? c.cell : null; },
+      setThreats, setSelection, setPlans, setSealing, setDay,
       onClick(fn) { handlers.click = fn; }, onHover(fn) { handlers.hover = fn; },
       resize, cellPos,
       get fps() { return fps; },

@@ -387,6 +387,118 @@ test('normal CDF and two-proportion z-test behave sensibly', () => {
   assert.ok(diff.diff > 0.39 && diff.p < 0.001);
 });
 
+// ---------- interface views: no truth leaks ----------
+const playSome = (opts, n) => {
+  const g = fresh(opts), mem = {};
+  for (let i = 0; i < n && !g.over; i++) g.step(K.Bots.belief(g.state, mem));
+  return g;
+};
+
+test('threat zones come only from remembered sightings, never cover visible ground, and ignore true positions', () => {
+  let checked = 0;
+  for (const seed of [3, 7, 11, 19]) {
+    const g = fresh({ seed }), mem = {};
+    for (let i = 0; i < 40 && !g.over; i++) {
+      g.step(K.Bots.belief(g.state, mem));
+      const st = g.state, zones = K.Views.threatZones(st);
+      for (const z of zones) {
+        const rec = st.player.belief.agents.get(z.id);
+        assert.ok(rec && rec.kind === 'sentinel', 'zone from a sighting');
+        assert.ok(z.age >= 1 && z.age <= 3);
+        for (const c of z.cells) assert.ok(!st.player.visible.has(c), 'zone excludes visible cells');
+        checked++;
+      }
+      // moving the real sentinels must not change what the player is shown
+      const saved = st.sentinels.map((s) => s.cell);
+      st.sentinels.forEach((s) => { s.cell = 0; });
+      assert.deepStrictEqual(K.Views.threatZones(st), zones);
+      st.sentinels.forEach((s, j) => { s.cell = saved[j]; });
+    }
+  }
+  assert.ok(checked > 0, 'some zones were produced');
+});
+
+test('ally plans are empty without Pandava coordination; sealing is hidden unless seen or reported', () => {
+  const g = playSome({ allyComms: false }, 25);
+  assert.deepStrictEqual(K.Views.allyPlans(g.state), []);
+  const st = g.state;
+  st.gatekeeper.waiting = true;
+  st.gatekeeper.cell = [...Array(st.geom.N).keys()].find((c) => c !== 0 && st.geom.ringOf(c) === st.geom.R && !st.player.visible.has(c));
+  assert.strictEqual(K.Views.sealing(st), null, 'unseen, unreported sealing stays hidden');
+  st.cond.allyComms = true;
+  assert.ok(K.Views.sealing(st).reported, 'reported by allies');
+  const linked = playSome({ allyComms: true }, 10);
+  assert.strictEqual(K.Views.allyPlans(linked.state).length, linked.state.allies.length);
+});
+
+test('cell report describes walls from the player belief, not the true formation', () => {
+  const g = playSome({ infoLevel: 'low', seed: 5 }, 12), st = g.state, G = st.geom, b = st.player.belief;
+  let unknown = 0;
+  for (let c = 1; c < G.N; c++) {
+    const r = K.Views.cellReport(st, c);
+    assert.ok(['visible', 'remembered', 'unseen'].includes(r.visibility));
+    if (r.inward) {
+      const k = G.ringOf(c) - 1, s = G.segOf(c);
+      if (b.gate[k][s] === -1) { assert.strictEqual(r.inward.state, 'unknown'); unknown++; }
+    }
+    if (r.legal) assert.strictEqual(r.whyNot, null);
+  }
+  assert.ok(unknown > 0, 'low information leaves walls unknown');
+  const far = K.Views.cellReport(st, G.cellId(1, (G.segOf(st.player.cell) + 6) % G.S));
+  assert.ok(far.whyNot, 'explains why a far tile cannot be entered');
+});
+
+test('Kaurava view places the player where the Kauravas last saw them; allies view merges ally maps', () => {
+  const g = playSome({ seed: 9 }, 30), st = g.state;
+  const kv = K.Views.kauravaView(st);
+  assert.ok(kv.truth && kv.kaurava);
+  if (st.kauravaIntel) assert.strictEqual(kv.playerCell, st.kauravaIntel.cell);
+  const av = K.Views.alliesView(st);
+  for (const a of st.allies) assert.ok(av.visible.has(a.cell));
+});
+
+// ---------- insights (briefing and report) ----------
+test('briefing lists the right objectives and forces for the configuration', () => {
+  const b = K.Insights.briefing({ infoLevel: 'low', allyComms: false, enemyComms: true }, {});
+  assert.strictEqual(b.objectives.length, 3);
+  assert.strictEqual(b.allies.length, 3);
+  assert.strictEqual(b.alliesLinked, false);
+  assert.ok(b.enemies.some((t) => /Jayadratha/.test(t)));
+  const core = K.Insights.briefing({ infoLevel: 'high', allyComms: true }, { goal: 'core', allies: ['bhima'], gatekeeper: false, rotationPeriod: 0 });
+  assert.strictEqual(core.objectives.length, 2);
+  assert.strictEqual(core.allies.length, 1);
+  assert.ok(!core.enemies.some((t) => /Jayadratha|drums/.test(t)));
+});
+
+test('report insights agree with the log and the summary', () => {
+  for (const seed of [2, 8, 14]) {
+    const g = fresh({ seed }), mem = {};
+    while (!g.over) g.step(K.Bots.belief(g.state, mem));
+    const st = g.state, s = g.summary();
+    const obj = K.Insights.objectives(st);
+    assert.strictEqual(obj[1].done, !!s.coreReached);
+    assert.strictEqual(obj[2].done, s.result === 'escaped');
+    const m = K.Insights.moments(st);
+    assert.ok(m.length <= 14);
+    for (let i = 1; i < m.length; i++) assert.ok(m[i].t >= m[i - 1].t, 'moments in time order');
+    assert.strictEqual(K.Insights.infoSeries(st).length, st.log.length);
+    const drona = K.Insights.agents(st).find((a) => a.who === 'Drona');
+    assert.ok(drona.text.includes(String(st.rotations)));
+  }
+});
+
+test('comparison uses only earlier rounds without counsel', () => {
+  const mk = (id, info, advisor, result) => ({ id, mode: 'play', condition: { infoLevel: info, advisor }, summary: { result, moves: 10, optimal: 5 } });
+  const sessions = [mk('a', 'low', 'none', 'escaped'), mk('b', 'low', undefined, 'exhausted'), mk('c', 'high', 'reliable', 'escaped'), mk('d', 'medium', 'none', 'escaped')];
+  const out = K.Insights.compare(sessions, { id: 'd' });
+  assert.strictEqual(out.total, 2);
+  const low = out.rows.find((r) => r.infoLevel === 'low');
+  assert.strictEqual(low.n, 2);
+  assert.strictEqual(low.escapeRate, 0.5);
+  assert.strictEqual(low.optimalRate, 0.5);
+  assert.strictEqual(out.rows.find((r) => r.infoLevel === 'medium').n, 0);
+});
+
 // ---------- run ----------
 (async () => {
   let failed = 0;

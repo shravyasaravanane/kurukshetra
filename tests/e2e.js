@@ -73,7 +73,7 @@ async function playToEnd(page, timeoutMs) {
     });
 
     await step('free play: keyboard moves advance turns and the pause menu stops input', async () => {
-      await page.eval(`localStorage.setItem('kurukshetra.introSeen','1'); document.getElementById('playBtn').click(); 'ok'`);
+      await page.eval(`localStorage.setItem('kurukshetra.introSeen','1'); document.getElementById('playBtn').click(); document.getElementById('bfBegin').click(); 'ok'`);
       await sleep(900);
       const t0 = await page.eval('KURU_UI.game.state.turn');
       await page.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true })); 'ok'`);
@@ -92,6 +92,43 @@ async function playToEnd(page, timeoutMs) {
       await sleep(600);
     });
 
+    await step('briefing, inspector and the after-action report', async () => {
+      await page.eval(`document.getElementById('seed').value = 42; document.getElementById('playBtn').click(); 'ok'`);
+      await sleep(400);
+      assert.ok(await page.eval(`!document.getElementById('briefing').classList.contains('hidden')`), 'briefing shown before play');
+      assert.ok(await page.eval(`document.querySelectorAll('#bfObjectives li').length === 3 && document.querySelectorAll('#bfAllies li').length === 3`), 'objectives and allies listed');
+      await page.eval(`document.getElementById('bfBegin').click(); 'ok'`);
+      await sleep(900);
+      // inspect a tile that is not next to the player: it reports what is known and why it cannot be entered
+      const far = await page.eval(`(() => { const st = KURU_UI.game.state, G = st.geom; return G.cellId(1, (G.segOf(st.player.cell) + 6) % G.S); })()`);
+      await page.eval(`KURU_UI.select({ type: 'cell', cell: ${far} }); 'ok'`);
+      assert.ok(await page.eval(`!document.getElementById('inspector').classList.contains('hidden') && /Ring 1/.test(document.getElementById('inspTitle').textContent)`), 'tile inspector');
+      assert.ok(await page.eval(`/Never seen|Remembered/.test(document.getElementById('inspBody').textContent)`), 'visibility state from the player belief');
+      await page.eval(`KURU_UI.select({ type: 'unit', id: 'player' }); 'ok'`);
+      assert.ok(await page.eval(`/Abhimanyu/.test(document.getElementById('inspTitle').textContent)`), 'unit inspector');
+      await page.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); 'ok'`);
+      assert.ok(await page.eval(`document.getElementById('inspector').classList.contains('hidden') && document.getElementById('pause').classList.contains('hidden')`), 'Esc closes the inspector first');
+      assert.ok(await page.eval(`document.querySelectorAll('#intelBars .ibar').length === 3`), 'intelligence panel');
+      await page.eval(`document.getElementById('camBtn').click(); 'ok'`);
+      assert.strictEqual(await page.eval(`document.getElementById('camLabel').textContent`), 'Close-up');
+      for (let i = 0; i < 4; i++) { await page.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })); 'ok'`); await sleep(750); }
+      await page.eval(`window.confirm = () => true; document.getElementById('leaveBtn').click(); 'ok'`);
+      await sleep(700);
+      assert.ok(await page.eval(`document.querySelectorAll('#rsObjectives li').length === 3`), 'objectives in the report');
+      assert.ok(await page.eval(`document.querySelectorAll('#rsTimeline rect').length >= 4`), 'turn-by-turn strip');
+      assert.ok(await page.eval(`document.querySelectorAll('#rsAgents li').length >= 4`), 'agents summary');
+      for (const v of ['viewTruth', 'viewAllies', 'viewKaurava', 'viewBelief']) await page.eval(`document.getElementById('${v}').click(); 'ok'`);
+      assert.ok(await page.eval(`document.getElementById('viewBelief').classList.contains('active')`));
+      await page.eval(`document.getElementById('rsReplay').click(); 'ok'`);
+      await sleep(500);
+      assert.ok(await page.eval(`KURU_UI.replay && /Verified/.test(document.getElementById('rpVerify').textContent)`), 'replay from the report');
+      await page.eval(`document.getElementById('leaveBtn').click(); 'ok'`);
+      await sleep(500);
+      assert.ok(await page.eval(`!document.getElementById('debrief').classList.contains('hidden') && KURU_UI.game.over`), 'back to the report');
+      await page.eval(`(() => { for (const k of ['understood','enoughInfo','alliesHelped','difficulty','enjoyed']) document.querySelector('input[name=fb_'+k+'][value="4"]').checked = true; document.getElementById('saveBtn').click(); return 1; })()`);
+      await sleep(600);
+    });
+
     await step('study mode: four practice levels, then three counterbalanced rounds', async () => {
       await page.eval(`document.getElementById('studyBtn').click(); document.getElementById('participantId').value = 'E2E'; document.getElementById('studyStart').click(); 'ok'`);
       for (let i = 0; i < 4; i++) {
@@ -101,6 +138,8 @@ async function playToEnd(page, timeoutMs) {
       const levels = [];
       for (let r = 1; r < 4; r++) {
         await sleep(700);
+        await page.eval(`document.getElementById('bfBegin').click(); 'ok'`);
+        await sleep(500);
         levels.push(await page.eval(`KURU_UI.game.state.cond.infoLevel`));
         await page.eval(`window.confirm = () => true; window.alert = () => {}; document.getElementById('leaveBtn').click(); 'ok'`);
         await sleep(500);
@@ -114,7 +153,7 @@ async function playToEnd(page, timeoutMs) {
     });
 
     await step("Krishna's counsel: marked tile, F follows it, and following is logged", async () => {
-      await page.eval(`document.querySelector('input[name=advisor][value=reliable]').click(); document.getElementById('seed').value = 12; document.getElementById('playBtn').click(); 'ok'`);
+      await page.eval(`document.querySelector('input[name=advisor][value=reliable]').click(); document.getElementById('seed').value = 12; document.getElementById('playBtn').click(); document.getElementById('bfBegin').click(); 'ok'`);
       await sleep(900);
       assert.ok(await page.eval(`!document.getElementById('counsel').classList.contains('hidden')`), 'counsel panel visible');
       const advised = await page.eval(`KURU_UI.game && document.getElementById('counselText').textContent.length > 0`);
@@ -130,7 +169,7 @@ async function playToEnd(page, timeoutMs) {
       await page.eval(`(() => { for (const k of ['understood','enoughInfo','alliesHelped','difficulty','enjoyed']) document.querySelector('input[name=fb_'+k+'][value="3"]').checked = true; document.getElementById('saveBtn').click(); return 1; })()`);
       await sleep(600);
       // AI Krishna without a key explains what is needed instead of failing silently
-      await page.eval(`document.querySelector('input[name=advisor][value=llm]').click(); document.getElementById('apiKey').value = ''; document.getElementById('playBtn').click(); 'ok'`);
+      await page.eval(`document.querySelector('input[name=advisor][value=llm]').click(); document.getElementById('apiKey').value = ''; document.getElementById('playBtn').click(); document.getElementById('bfBegin').click(); 'ok'`);
       await sleep(900);
       assert.ok(/API key/.test(await page.eval(`document.getElementById('counselText').textContent`)), 'no-key message');
       await page.eval(`window.confirm = () => true; document.getElementById('leaveBtn').click(); 'ok'`);

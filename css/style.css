@@ -1,4 +1,8 @@
-/* KURUKSHETRA — shared design tokens and components (analysis dashboard, debrief, forms) */
+/* KURUKSHETRA — research dashboard. Same identity as the game: obsidian, antique gold, Cinzel / Inter. */
+@font-face { font-family: 'Cinzel'; font-weight: 600; font-display: swap; src: url('../vendor/fonts/cinzel-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Cormorant Garamond'; font-weight: 500; font-display: swap; src: url('../vendor/fonts/cormorant-garamond-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 400; font-display: swap; src: url('../vendor/fonts/inter-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-weight: 600; font-display: swap; src: url('../vendor/fonts/inter-latin-600-normal.woff2') format('woff2'); }
 :root {
   --bg: #f4efe4;
   --surface: #fbf8f1;
@@ -37,12 +41,12 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121118; --surface: #1b1a23; --surface-2: #24222e; --border: #34313f;
-  --text: #ece6d8; --muted: #a39b8b; --accent: #e08a35; --accent-ink: #1a1208;
-  --ally: #5b9be0; --danger: #e0584f; --gatekeeper: #a77be0; --good: #58b07f; --warn: #d9a23a;
+  --bg: #0c0b0a; --surface: #15130f; --surface-2: #1f1b18; --border: rgba(201,162,92,.22);
+  --text: #ece4d4; --muted: #a39782; --accent: #c9a25c; --accent-ink: #17120a;
+  --ally: #7ea8d8; --danger: #d0574a; --gatekeeper: #ad8fdb; --good: #79b087; --warn: #d7a24c;
   --map-fog: #0b0a10; --map-seen: #2c2935; --map-lit: #4a4352; --map-field: #24301f; --map-field-lit: #3d5233;
   --map-wall: #e7dcc4; --map-wall-unknown: #5d576a; --map-core: #e7b04a;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   color-scheme: dark;
 }
 
@@ -50,11 +54,12 @@
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; }
-h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: .04em; }
+h1 { font-family: Cinzel, Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: .06em; }
+h3 { font-family: Cinzel, Georgia, serif; }
 h2 { font-size: 1.15rem; }
 h3 { font-size: .95rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 p { margin: 0 0 .8em; }
@@ -67,8 +72,8 @@ a { color: var(--accent); }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface);
 }
-.brand { font-family: Georgia, serif; font-weight: 700; letter-spacing: .18em; font-size: 1.05rem; }
-.brand span { color: var(--muted); font-family: system-ui, sans-serif; letter-spacing: 0; font-weight: 400; font-size: .85rem; margin-left: 10px; }
+.brand { font-family: Cinzel, Georgia, serif; font-weight: 600; letter-spacing: .22em; font-size: 1.05rem; color: var(--accent); }
+.brand span { color: var(--muted); font-family: Inter, system-ui, sans-serif; letter-spacing: 0; font-weight: 400; font-size: .85rem; margin-left: 10px; }
 .topbar nav { display: flex; gap: 8px; align-items: center; }
 
 .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }

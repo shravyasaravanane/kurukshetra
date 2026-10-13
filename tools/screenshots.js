@@ -45,24 +45,34 @@ async function botTurns(page, n) { for (let i = 0; i < n; i++) { await page.eval
     await page.eval(`document.getElementById('lrList').click(); document.getElementById('levelsBack').click(); 'ok'`);
     await sleep(800);
     await page.eval(`document.getElementById('seed').value = 42; document.getElementById('playBtn').click(); 'ok'`);
+    await sleep(1200);
+    await shot(page, 'briefing');
+    await page.eval(`document.getElementById('bfBegin').click(); 'ok'`);
     await sleep(1500);
     await botTurns(page, 14);
     await sleep(1800);
     await shot(page, 'gameplay');
-    await page.eval(`document.getElementById('camBtn').click(); 'ok'`);
+    await page.eval(`(() => { const st = KURU_UI.game.state, G = st.geom; KURU_UI.select({ type: 'cell', cell: G.cellId(Math.max(1, G.ringOf(st.player.cell) - 1), (G.segOf(st.player.cell) + 2) % G.S) }); return 1; })()`);
+    await sleep(1200);
+    await shot(page, 'inspector');
+    await page.eval(`KURU_UI.select(null); document.getElementById('camBtn').click(); document.getElementById('camBtn').click(); 'ok'`);
     await sleep(3500);
     await shot(page, 'overview-fog');
     await page.eval(`document.getElementById('camBtn').click(); 'ok'`);
     for (let i = 0; i < 200; i++) { if (await page.eval(BOT)) break; await sleep(300); }
-    await sleep(2500);
-    await page.eval(`document.getElementById('viewTruth').click(); 'ok'`);
+    await sleep(3500);
+    await shot(page, 'debrief');
+    await page.eval(`document.querySelector('#debrief .results-panel').scrollTop = 900; 'ok'`);
+    await sleep(500);
+    await shot(page, 'debrief-analysis');
+    await page.eval(`document.querySelector('#debrief .results-panel').scrollTop = 0; document.getElementById('viewTruth').click(); 'ok'`);
     await sleep(3500);
     await shot(page, 'debrief-truth');
 
     // Krishna's counsel in free play (reliable messenger).
     await page.eval(`(() => { for (const k of ['understood','enoughInfo','alliesHelped','difficulty','enjoyed']) document.querySelector('input[name=fb_'+k+'][value="4"]').checked = true; document.getElementById('saveBtn').click(); return 1; })()`);
     await sleep(1200);
-    await page.eval(`document.querySelector('input[name=advisor][value=reliable]').click(); document.getElementById('seed').value = 12; document.getElementById('playBtn').click(); 'ok'`);
+    await page.eval(`document.querySelector('input[name=advisor][value=reliable]').click(); document.getElementById('seed').value = 12; document.getElementById('playBtn').click(); document.getElementById('bfBegin').click(); 'ok'`);
     await sleep(1500);
     await botTurns(page, 3);
     await sleep(1800);

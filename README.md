@@ -8,7 +8,7 @@ Inspired by the *Chakravyuha* from the Mahabharata · built as a research instru
 
 **[▶ Play it in your browser](https://shravyasaravanane.github.io/kurukshetra/)** · [Research dashboard](https://shravyasaravanane.github.io/kurukshetra/analysis.html) · [Complete guide](docs/GUIDE.md)
 
-![Tests](https://img.shields.io/badge/tests-34%20unit%20%2B%208%20browser-3fae6a) ![Game dependencies](https://img.shields.io/badge/game%20runtime%20deps-0-2a78d6) ![Three.js](https://img.shields.io/badge/three.js-r128-black) ![Claude](https://img.shields.io/badge/AI%20agent-Claude%20tool%20use-d97757) ![Python](https://img.shields.io/badge/analysis-pandas%20%C2%B7%20numpy-3776ab) ![License](https://img.shields.io/badge/license-MIT-eda100)
+![Tests](https://img.shields.io/badge/tests-41%20unit%20%2B%209%20browser-3fae6a) ![Game dependencies](https://img.shields.io/badge/game%20runtime%20deps-0-2a78d6) ![Three.js](https://img.shields.io/badge/three.js-r128-black) ![Claude](https://img.shields.io/badge/AI%20agent-Claude%20tool%20use-d97757) ![Python](https://img.shields.io/badge/analysis-pandas%20%C2%B7%20numpy-3776ab) ![License](https://img.shields.io/badge/license-MIT-eda100)
 
 ![The Chakravyuha formation](docs/media/menu.png)
 
@@ -31,11 +31,15 @@ KURUKSHETRA puts a human player in Abhimanyu's place. They are surrounded by aut
 
 ## Screenshots
 
-| Krishna's counsel: the teal K marks the advised tile | Fog of war: dark rings are unseen, faded walls are remembered |
+| Scenario briefing: objectives, your intelligence, the forces | Command interface: status, intelligence, allies, actions |
 |---|---|
-| ![Counsel](docs/media/counsel.png) | ![Overview](docs/media/overview-fog.png) |
-| **Debrief: switch the whole battlefield to "the truth"** | **Replay: re-simulate any recorded round, turn by turn** |
-| ![Debrief](docs/media/debrief-truth.png) | ![Replay](docs/media/replay.png) |
+| ![Briefing](docs/media/briefing.png) | ![Gameplay](docs/media/gameplay.png) |
+| **Inspect any tile: what you know, and why you can't go there** | **Krishna's counsel: the teal K marks the advised tile** |
+| ![Inspector](docs/media/inspector.png) | ![Counsel](docs/media/counsel.png) |
+| **After-action report: objectives, turn-by-turn quality, turning points** | **Four viewpoints: what you knew, the truth, the allies, the Kauravas** |
+| ![Report](docs/media/debrief.png) | ![Debrief](docs/media/debrief-truth.png) |
+| **Map view: mist over unexplored ground, faded walls remembered** | **Replay: re-simulate any recorded round, turn by turn** |
+| ![Overview](docs/media/overview-fog.png) | ![Replay](docs/media/replay.png) |
 | **Learn to play: six short levels, one idea each** | **Analysis dashboard: conditions, trust, 95% CIs** |
 | ![Learn to play](docs/media/levels.png) | ![Analysis](docs/media/analysis.png) |
 
@@ -87,7 +91,10 @@ Krishna is an **LLM agent** built on Claude through the official Anthropic SDK, 
 ## What makes it interesting
 
 **For players**
-- A full 3D battlefield (Three.js) with animated characters, turning ranks of soldiers, torch-lit gates, high-dynamic-range (HDR) bloom and synthesised sound.
+- A full 3D battlefield (Three.js): terraced rings rising to the core, animated characters, turning ranks of soldiers, torch-lit gates, high-dynamic-range (HDR) bloom, a sun that sinks as the day runs out, and synthesised sound.
+- **One coherent flow:** landing → scenario briefing → command interface (pause any time) → after-action report → replay. One design system throughout: obsidian and antique gold, Cinzel, Cormorant and Inter (bundled, so it works offline).
+- **Fog of war with five states:** in sight, remembered (faded, "seen N turns ago"), never seen (under mist), *possible enemy* (hatched ground where a sentinel you saw recently could be now), and *known only to others* (allies' reported routes, shown only when they can talk to you).
+- **Inspect anything:** click a unit or tile to see what you know about it, how many steps away it is by your own map, and why you can't move there. Every action reports its result: done, failed, queued or unavailable.
 - **Six short learn-to-play levels**, each teaching one idea, with a coach, stars and unlocks. The heads-up display (HUD) reveals itself gradually.
 - **Readable at a glance:**
   - A tactical camera and ring labels on the ground.
@@ -114,11 +121,12 @@ Krishna is an **LLM agent** built on Claude through the official Anthropic SDK, 
   - A post-round questionnaire.
   - Decision times that exclude pauses.
 - **Deterministic replay** that verifies itself and shows what counsel was on screen at each turn.
+- **After-action report** built only from the log: objectives with turns, a turn-by-turn decision-quality strip, turning points, what each agent did, map knowledge over time, and a comparison with your earlier rounds. No invented numbers.
 
 **For engineers**
 - **The game has no build step and no runtime dependencies.** You can double-click `index.html` or deploy it as a static site.
 - **One engine, two hosts.** The same files run in the browser and in Node, for the tests, simulators and agent evaluation.
-- **34 unit tests and 8 end-to-end browser tests.** The browser tests run through a zero-dependency Chrome DevTools Protocol driver. The agent loop is tested against a mock Claude client.
+- **41 unit tests and 9 end-to-end browser tests.** Unit tests also check that no interface view leaks the truth. The browser tests run through a zero-dependency Chrome DevTools Protocol driver. The agent loop is tested against a mock Claude client.
 - **Python analysis layer** using pandas, NumPy and matplotlib, with a logistic regression fitted by iteratively reweighted least squares.
 - **CI** runs the Node, browser and Python jobs, and a **GitHub Pages** workflow deploys the game.
 
@@ -129,8 +137,8 @@ Krishna is an **LLM agent** built on Claude through the official Anthropic SDK, 
 npm start                         # http://localhost:8080
 
 # Verify
-npm test                          # 34 engine, counsel, agent, level and statistics tests
-npm run test:e2e                  # 8 browser tests in headless Chrome or Edge
+npm test                          # 41 engine, counsel, agent, level, view and statistics tests
+npm run test:e2e                  # 9 browser tests in headless Chrome or Edge
 
 # Research
 npm run sim                       # information x coordination: 7,200 games -> results/REPORT.md
@@ -181,8 +189,11 @@ js/advisor.js                messengers of controlled reliability, Krishna's ins
 js/krishna.js                the Claude tool-use advisor agent
 js/bots.js                   baseline players, including trust policies (ignore / always / calibrated)
 js/levels.js                 the six learn-to-play levels (tested for winnability)
+js/views.js                  knowledge views for the interface: threat zones, ally plans, tile reports, Kaurava/ally pictures
+js/insights.js               briefing and after-action report, derived from the real state and log
 js/world3d.js, characters.js 3D battlefield, effects, camera, HDR pipeline; animated characters
-js/ui.js, analysis.js        game screens, HUD, study modes, replay; dashboard
+js/ui.js, analysis.js        game screens, command interface, inspector, study modes, replay; dashboard
+css/game.css, style.css      the design system (game) and the dashboard styles
 js/logger.js, stats.js       session schema and exports; Wilson CIs, z-tests, reliance stats
 sim/                         experiment runners, report generators, LLM-agent evaluation harness
 analysis/                    Python analysis (pandas, numpy, matplotlib)
